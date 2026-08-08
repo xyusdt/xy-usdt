@@ -81,17 +81,53 @@ export default {
             await env.kv.put("system_init_v1", "true");
         }
 
+        // 验证码生成 API
+        if (url.pathname === "/api/captcha") {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            const captchaId = crypto.randomUUID();
+            await env.kv.put(`captcha_${captchaId}`, code, { expirationTtl: 300 });
+            let svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'>`;
+            svg += `<rect width='120' height='40' fill='#f0f0f0' rx='4'/>`;
+            for (let i = 0; i < 4; i++) {
+                const x1 = Math.random()*120, y1 = Math.random()*40, x2 = Math.random()*120, y2 = Math.random()*40;
+                svg += `<line x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' stroke='#ccc' stroke-width='1'/>`;
+            }
+            for (let i = 0; i < 20; i++) {
+                svg += `<circle cx='${Math.random()*120}' cy='${Math.random()*40}' r='1' fill='#ccc'/>`;
+            }
+            const clrs = ['#333','#555','#222','#444'];
+            for (let i = 0; i < 4; i++) {
+                const x = 14 + i * 27, y = 24 + Math.random()*8 - 4;
+                const rot = Math.random()*20 - 10, fs = 20 + Math.random()*4;
+                svg += `<text x='${x}' y='${y}' font-size='${fs}' font-family='monospace' font-weight='bold' fill='${clrs[i]}' transform='rotate(${rot},${x},${y})'>${code[i]}</text>`;
+            }
+            svg += `</svg>`;
+            return new Response(JSON.stringify({ id: captchaId, svg }), { headers: { 'Content-Type': 'application/json' } });
+        }
+
         // ==========================================
         // 2. 登录与鉴权路由
         // ==========================================
         if (url.pathname === "/login" && request.method === "POST") {
             const data = await request.formData();
+            const captchaId = data.get("captcha_id");
+            const captchaCode = data.get("captcha_code");
+            if (!captchaId || !captchaCode) {
+                return new Response(null, { status: 302, headers: { 'Location': '/?err=请输入验证码' } });
+            }
+            const storedCode = await env.kv.get(`captcha_${captchaId}`);
+            await env.kv.delete(`captcha_${captchaId}`);
+            if (!storedCode || storedCode.toUpperCase() !== captchaCode.toUpperCase()) {
+                return new Response(null, { status: 302, headers: { 'Location': '/?err=验证码错误' } });
+            }
             if (data.get("username") === await env.kv.get("admin_username") && data.get("password") === await env.kv.get("admin_password")) {
                 const token = crypto.randomUUID();
                 await env.kv.put("admin_token", token, { expirationTtl: 86400 });
                 return new Response("Login Success", { status: 302, headers: { "Location": "/dashboard", "Set-Cookie": `token=${token}; HttpOnly; Path=/` } });
             }
-            return new Response("账号或密码错误", { status: 401 });
+            return new Response(null, { status: 302, headers: { "Location": "/?err=账号或密码错误" } });
         }
         if (url.pathname === "/") {
             return new Response(`
@@ -445,6 +481,7 @@ export default {
             <div class="login-header">
                 <h1>商户控制台</h1>
                 <p>请输入您的账号信息登录系统</p>
+            <div id="err_msg" style="display:none;background:hsl(0,72%,97%);border:1px solid hsl(0,72%,85%);color:hsl(0,72%,51%);padding:10px 14px;border-radius:8px;font-size:0.85rem;margin-top:12px;"></div>
             </div>
             <form action="/login" method="POST">
                 <div class="form-group">
@@ -455,8 +492,32 @@ export default {
                     <label>登录密码</label>
                     <input type="password" name="password" placeholder="请输入登录密码" required autocomplete="current-password">
                 </div>
+                <div class="form-group">
+                    <label>验证码</label>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <input type="text" name="captcha_code" placeholder="请输入验证码" required autocomplete="off" maxlength="4" style="flex:1;text-transform:uppercase;letter-spacing:4px;text-align:center;">
+                        <div id="captcha_img" style="cursor:pointer;height:40px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid hsl(220,13%,91%);" onclick="loadCaptcha()" title="点击刷新验证码"></div>
+                    </div>
+                    <input type="hidden" name="captcha_id" id="captcha_id">
+                </div>
                 <button type="submit" class="login-btn">安全登录</button>
             </form>
+            <script>
+            (function(){
+                const p = new URLSearchParams(location.search);
+                const err = p.get('err');
+                if(err){const el=document.getElementById('err_msg');el.textContent=err;el.style.display='block';history.replaceState(null,'',location.pathname);}
+            })();
+            async function loadCaptcha() {
+                try {
+                    const res = await fetch('/api/captcha');
+                    const data = await res.json();
+                    document.getElementById('captcha_img').innerHTML = data.svg;
+                    document.getElementById('captcha_id').value = data.id;
+                } catch(e) { console.error('验证码加载失败', e); }
+            }
+            loadCaptcha();
+            </script>
             <div class="login-footer">
                 <p>© 夏雨全链矩阵 · Powered by Cloudflare Workers</p>
             </div>
