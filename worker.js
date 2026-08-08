@@ -275,7 +275,7 @@ export default {
             border: 1px solid hsl(220, 13%, 91%);
         }
         .login-header {
-            margin-bottom: 36px;
+            margin-bottom: 20px;
         }
         .login-header h1 {
             font-size: 1.5rem;
@@ -442,7 +442,7 @@ export default {
                 </div>
                 <span class="brand-logo-text">夏雨全链矩阵</span>
             </div>
-            <h1 class="brand-title">全链 USDT 收款<br>一站式监控矩阵</h1>
+            <h1 class="brand-title">非托管全链 USDT 收款<br>一站式监控矩阵</h1>
             <p class="brand-desc">覆盖 20+ 主流公链，边缘节点实时拦截入账，秒级触发回调通知。为您的发卡网、商户系统提供企业级稳定收款能力。</p>
             <div class="brand-features">
                 <div class="brand-feature">
@@ -480,7 +480,7 @@ export default {
         <div class="login-card">
             <div class="login-header">
                 <h1>商户控制台</h1>
-                <p>请输入您的账号信息登录系统</p>
+                <p>非托管多链USDT收款，客户付款直达你的钱包，系统不接触资金。</p>
             <div id="err_msg" style="display:none;background:hsl(0,72%,97%);border:1px solid hsl(0,72%,85%);color:hsl(0,72%,51%);padding:10px 14px;border-radius:8px;font-size:0.85rem;margin-top:12px;"></div>
             </div>
             <form action="/login" method="POST">
