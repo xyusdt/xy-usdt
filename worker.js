@@ -207,7 +207,7 @@ export default {
         }
         .brand-title {
             color: white;
-            font-size: 1.85rem;
+            font-size: 2.4rem;
             font-weight: 700;
             line-height: 1.35;
             margin-bottom: 14px;
