@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全链系统监控矩阵台</title>
+    <style>
+        /* ================= 基础与全局变量 ================= */
+        :root {
+            --primary: #3b82f6; --primary-hover: #2563eb;
+            --bg-body: #f3f4f6; --bg-sidebar: #0f172a; --bg-surface: #ffffff;
+            --text-main: #1f2937; --text-muted: #6b7280;
+            --border: #e5e7eb;
+        }
+        body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg-body); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+        code { border-radius: 2px; background-color: #dce9ff; padding: 1px 5px; margin: 0 3px; font-size: .9em; color: #e80073; letter-spacing: .5px; word-wrap: break-word; font-family: var; }
+        
+        /* 侧边栏与布局 */
+        .sidebar { width: 260px; background: var(--bg-sidebar); display: flex; flex-direction: column; z-index: 10; box-shadow: 2px 0 8px rgba(0,0,0,0.1); }
+        .sidebar-logo { height: 70px; display: flex; align-items: center; padding: 0 24px; color: white; font-size: 1.15rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-logo span { color: var(--primary); margin-right: 8px; }
+        .nav-menu { padding: 20px 12px; display: flex; flex-direction: column; }
+        .nav-item { padding: 14px 18px; color: #94a3b8; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500; display: flex; align-items: center; transition: 0.2s;}
+        .nav-item:hover { background: #1e293b; color: white; }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-header { height: 70px; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; justify-content: space-between; }
+        .header-title { font-size: 1.1rem; font-weight: 600; }
+        .content-area { flex: 1; padding: 15px 32px; overflow-y: auto; }
+        
+        .tab-content { display: none; animation: slideUp 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 卡片与表格 */
+        .card { background: var(--bg-surface); padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-header h3 { margin: 0; font-size: 1.1rem; }
+        .table-container { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
+        
+        /* 表格交互与流水 UI 专属样式 */
+        #txTable tr { transition: background-color 0.2s ease; }
+        #txTable tr:hover { background-color: #f8fafc; }
+        .hash-tag { 
+            color: var(--primary); text-decoration: none; font-family: monospace; font-weight: 500; font-size: 12px;
+            max-width: 140px; display: inline-block; vertical-align: middle; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; 
+        }
+        .hash-tag:hover { text-decoration: underline; color: var(--primary-hover); }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; border: 1px solid transparent; }
+        .status-success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+        .status-pending { background: #fef08a; color: #854d0e; border-color: #fde047; }
+        
+        /* 徽章与标签 */
+        .address-tag { 
+            background: #e0f2fe; color: #0284c7; padding: 4px 8px; border-radius: 6px; font-family: monospace; font-size: 12px;
+            display: inline-block; vertical-align: middle; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; 
+        }
+        .net-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold; color: white; display: inline-block; text-align: center; min-width: 45px; background: #94a3b8; }
+        .net-TRON { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .net-BSC { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .net-ETH { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+        .net-AVAX { background: linear-gradient(135deg, #e11d48, #be123c); }
+        .net-ARBITRUM { background: linear-gradient(135deg, #28a0f0, #1272c2); }
+        .net-OPTIMISM { background: linear-gradient(135deg, #ff0420, #cb0016); }
+        .net-POLYGON { background: linear-gradient(135deg, #8247e5, #5f2aab); }
+        .net-XLAYER { background: linear-gradient(135deg, #f1a830, #c88117); }
+        .net-OKT { background: linear-gradient(135deg, #1b65e2, #1048a6); }
+        .net-APTOS { background: linear-gradient(135deg, #25e7b2, #1bb58b); }
+        .net-SOLANA { background: linear-gradient(135deg, #14f195, #9945ff); }
+        .net-TON { background: linear-gradient(135deg, #0098ea, #0076b6); }
+        .net-BERACHAIN { background: linear-gradient(135deg, #ff8400, #b35c00); }
+        .net-MONAD { background: linear-gradient(135deg, #836ef9, #5e4bd6); }
+        .net-PLASMA { background: linear-gradient(135deg, #512da8, #311b92); }
+        .net-TEMPO { background: linear-gradient(135deg, #0f172a, #000000); }
+        .net-UNICHAIN { background: linear-gradient(135deg, #ff1493, #c71585); }
+
+        /* ================= 动态地址解析器样式 ================= */
+        .preview-container { margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; display: flex; flex-direction: column; }
+        .addr-row { display: flex; align-items: center; background: white; padding: 10px 15px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .addr-string { font-family: monospace; font-size: 1rem; color: #374151; flex: 1; margin-left: 15px; }
+        .chain-icons { display: flex; }
+        .chain-icon-badge { display: flex; align-items: center; padding: 4px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; }
+        
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-success { background: #10b981; } .btn-danger { background: #ef4444; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.95rem;}
+        .form-group textarea, .form-group input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: monospace; box-sizing: border-box; background: #f8fafc; outline: none; transition: 0.2s; }
+        #add_webhook_form input, #add_address_form input, #add_net_form input { box-sizing: border-box; }
+        #add_webhook_form select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: monospace; box-sizing: border-box; background: #f8fafc; outline: none; cursor: pointer; transition: 0.2s; appearance: auto; }
+        #add_webhook_form > div:first-child, #add_address_form > div:first-child { flex-wrap: wrap; }
+        .form-group textarea:focus, .form-group input:focus, #add_webhook_form select:focus { 
+            border-color: var(--primary); 
+            background: white; 
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15); 
+        }
+        .form-hint { font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* 文档说明页样式 */
+        .doc-section { margin-bottom: 30px; }
+        .doc-section h4 { color: var(--primary); margin-bottom: 10px; font-size: 1.1rem; display: flex; align-items: center; }
+		.doc-code { background: #1e293b; color: #a5b4fc; padding: 0 15px; border-radius: 8px; font-family: monospace; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: break-word; }
+        .doc-alert { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 8px 8px 0; color: #92400e; font-size: 0.9rem; }
+        #add_webhook_form > div:first-child > div, #add_address_form > div:first-child > div, #add_net_form > div:first-child > div { padding-right: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        #add_webhook_form > div:first-child > div:last-child, #add_address_form > div:first-child > div:last-child, #add_net_form > div:first-child > div:last-child { padding-right: 0; }
+        .nav-menu > * + * { margin-top: 8px; }
+        .nav-item > * + * { margin-left: 10px; }
+        .preview-container > * + * { margin-top: 10px; }
+        .chain-icons > * + * { margin-left: 8px; }
+        .chain-icon-badge > * + * { margin-left: 5px; }
+        .doc-section h4 > * + * { margin-left: 8px; }
+		/* ================= 移动端适配样式 ================= */
+    .menu-toggle { display: none; }
+    @media (max-width: 768px) {
+        .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.3s ease; z-index: 1000; box-shadow: 2px 0 12px rgba(0,0,0,0.5); }
+        .sidebar.open { transform: translateX(0); }
+        .mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; opacity: 0; transition: opacity 0.3s; }
+        .mobile-overlay.open { display: block; opacity: 1; }
+        .top-header { padding: 0 15px; justify-content: flex-start; }
+        .header-title { font-size: 1rem; flex: 1; text-align: left; }
+        .header-user { display: none; } /* 移动端隐藏当前用户以节省空间 */
+        .menu-toggle { display: block; margin-right: 15px; cursor: pointer; color: var(--text-main); }
+        .content-area { padding: 15px; }
+        .card { padding: 15px; }
+        .card-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        .card-header > div { display: flex; width: 100%; flex-wrap: wrap; gap: 8px; }
+        .card-header > div button { flex: 1; margin: 0 !important; }
+        /* 强制表单输入框在移动端垂直排列 */
+        #add_webhook_form > div:first-child > div, #add_address_form > div:first-child > div, #add_net_form > div:first-child > div { flex: 0 0 100% !important; padding-right: 0 !important; }
+    }
+    </style>
+</head>
+<body>
+	<div class="mobile-overlay" onclick="toggleMobileMenu(true)"></div>
+    <div class="sidebar">
+        <div class="sidebar-logo"><span>●</span> 夏雨全链矩阵</div>
+        <div class="nav-menu">
+            <div class="nav-item active" onclick="switchTab('transactions', '全链交易流水')">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> 交易流水
+            </div>
+            <div class="nav-item" onclick="switchTab('webhooks', '发卡网 API 回调')">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> 回调路由
+            </div>
+            <div class="nav-item" onclick="switchTab('addresses', '收款地址管理')">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> 收款地址
+            </div>
+			<div class="nav-item" onclick="switchTab('networks', '区块链网络分类')">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z M12 4c2.5 2 4 5 4 8s-1.5 6-4 8c-2.5-2-4-5-4-8s1.5-6 4-8z M12 2v20 M2 12h20"></path></svg> 网络节点
+            </div>
+            <div class="nav-item" onclick="switchTab('settings', '全网收款地址池与设置')">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> 基础配置
+            </div>
+            <div class="nav-item" onclick="switchTab('docs', '开发与使用文档')">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg> 使用说明
+            </div>
+			<div class="nav-item" onclick="if(confirm('确定要退出矩阵系统吗？')){document.cookie='token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; location.href='/';}" style="margin-top: auto; color: #f87171;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> 退出系统
+            </div>
+        </div>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="top-header">
+			<svg class="menu-toggle" onclick="toggleMobileMenu()" width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            <div class="header-title" id="current-page-title">全链交易流水 (Orders)</div>
+            <div class="header-user"><div class="avatar">Admin</div>系统管理员</div>
+        </div>
+
+        <div class="content-area">
+            
+            <div id="transactions" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>全链入账记录 (USDT)</h3>
+                        <div>
+                            <button class="btn btn-danger" onclick="batchDeleteOrders()" style="margin-right: 8px; background: #ef4444;">🗑️ 批量删除选定流水</button>
+                            <button class="btn" onclick="syncChain()">⚡ 手动唤醒全网扫描</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="txTable">
+                            <tr>
+                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllTx" onchange="toggleSelectAllTx(this.checked)"></th>
+                                <th>处理网络</th><th>交易哈希</th><th>付款方 (From)</th><th>收款方 (To)</th><th>金额 (USDT)</th><th>系统时间</th><th>状态 (Status)</th><th>操作</th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+				<div style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; border-left: 4px solid var(--primary);">
+                    <h4 style="margin-top:0; color:var(--text-main); font-size:1rem;">💡 全链交易流水字段与流转说明：</h4>
+                    <ul style="font-size: 0.85rem; color: #4b5563; line-height: 1.8; padding-left: 20px; margin-bottom:0;">
+                        <li><strong>处理网络：</strong>展示引擎捕获到该笔资金的具体区块链标识（如 TRON、BSC）。系统在底层已实现网络隔离，同哈希异链的数据不会发生串号或双花冲突。</li>
+                        <li><strong>交易哈希：</strong>链上唯一转账凭证。文字为超链接状态，点击即可根据处理网络自动路由，跳转至对应的官方区块链浏览器进行区块高度查验。</li>
+                        <li><strong>付款方 (From) 与 收款方 (To)：</strong>分别记录发币地址与您在系统配置的接单靓号。UI 层已根据出入金角色进行了蓝灰色块的视觉隔离。</li>
+                        <li><strong>金额 (USDT)：</strong>此处显示的金额是扫块引擎通过读取您在【网络节点】中配置的“精度 (Decimals)”（如 6 或 18），自动执行换算除法后得出的真实法币数值。</li>
+                        <li><strong>系统时间：</strong>该笔链上流水被 Workers 边缘计算节点拦截并写入底层 D1 数据库的绝对时间，前端已强制格式化为 <code>Asia/Shanghai</code> 北京时间。</li>
+                        <li><strong>操作与清理：</strong>由于全网高频轮询会累积大量流水，系统提供了“批量删除”机制。为了避免 Cloudflare D1 存储容量溢出，建议定期对历史无争议的老旧账单进行批量勾选清理，但请务必保留近期的作为异步回调排查依据。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="webhooks" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>发卡网异步回调路由列表</h3>
+                        <button class="btn btn-success" onclick="resetFormState('webhook'); document.getElementById('add_webhook_form').style.display='block'">+ 增加回调节点</button>
+                    </div>
+                    
+                    <div id="add_webhook_form" style="display:none; background:#f8fafc; padding:20px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                        <div style="display:flex; margin-bottom:15px;">
+                            <div style="flex:1;"><label style="font-size:0.9rem;">图标链接 (选填)</label><input type="text" id="new_wh_icon" placeholder="https://..." style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:1;"><label style="font-size:0.9rem;">节点名称</label><input type="text" id="new_wh_name" placeholder="如: 官方发卡网" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:2;"><label style="font-size:0.9rem;">CALLBACK_URL</label><input type="text" id="new_wh_url" placeholder="如: https://发卡网域名/api/notify/usdt 或 https://发卡网域名/callback.php" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+							<div style="flex:2;"><label style="font-size:0.9rem;">APP_SECRET</label><input type="text" id="new_wh_secret" placeholder="通讯密钥密文" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:2;"><label style="font-size:0.9rem;">绑定精准单地址 (默认全网)</label><select id="new_wh_binds" style="margin-top:5px;"><option value="*">[*] 接收所有地址回调</option></select></div>
+                            <div style="flex:1;"><label style="font-size:0.9rem;">备注 (选填)</label><input type="text" id="new_wh_remark" placeholder="节点业务内部备注信息" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                        </div>
+                        <div style="text-align:center;">
+                            <button class="btn" style="background:#94a3b8; margin-right:10px;" onclick="resetFormState('webhook')">取消</button>
+                            <button class="btn btn-success" onclick="submitNewWebhook()">确认保存</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="webhookTable">
+                            <thead>
+                                <tr>
+                                    <th>节点ID</th>
+                                    <th>图标</th>
+                                    <th>名称</th>
+                                    <th>CALLBACK_URL</th>
+                                    <th>APP_SECRET</th>
+                                    <th>绑定号池</th>
+                                    <th>添加日期</th>
+                                    <th>备注</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="webhook_list_body">
+                                <tr><td colspan="10" style="text-align:center; color:#94a3b8;">暂无回调路由，请点击右上角增加</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; border-left: 4px solid var(--primary);">
+                        <h4 style="margin-top:0; color:var(--text-main); font-size:1rem;">💡 回调路由参数说明：</h4>
+                        <ul style="font-size: 0.85rem; color: #4b5563; line-height: 1.8; padding-left: 20px; margin-bottom:0;">
+                            <li><strong>节点序数ID：</strong>系统 D1 数据库主键自动递增生成的唯一通道序列号，全局唯一。</li>
+                            <li><strong>图标：</strong>节点的视觉徽标链接（如各发卡站的 Favicon），用于在多商户流转时直观区分不同的接货终端。</li>
+                            <li><strong>名称：</strong>自定义的下游商户或系统代号。如“发卡A站”、“大客户B端”，方便多商户环境下的分类辨识。</li>
+                            <li><strong>CALLBACK_URL：</strong>外部接收通知的网关 API 接口。支持任何架构的发卡系统：若为 CF无服务器架构(如XYFK) 请填写 <code>https://发卡网域名/api/notify/usdt</code>；若为传统 PHP 架构请填写 <code>https://发卡网域名/callback.php</code>。扫到账后，系统会向此地址发起 <code>POST</code> 核心请求。</li>
+							<li><strong>APP_SECRET (核心双向鉴权)：</strong>多租户系统级通讯密钥。**【极重要】**本密钥具有双重安全身份：<br>
+                                1. <strong>被动接收授权：</strong>发卡网向本系统发送 <code>/api/watch</code> 监控唤醒指令时，必须在 HTTP Header 中携带此密钥作为 <code>Bearer Token</code>。系统将自动比对所有已启用路由的 Secret，匹配成功即放行。<br>
+                                2. <strong>主动防伪签名：</strong>本系统向发卡网推送成功回调时，会使用此密钥进行防篡改 SHA256 签名计算（规则：<code>网络标识 + 交易哈希 + 金额 + APP_SECRET</code>）。请务必与下游系统保持完全一致！
+                            </li>
+							<li><strong>绑定靓号池：</strong>路由过滤器。可限定该回调通道仅接收指定收款地址的通知（支持英文逗号分隔多地址）；若填写 <code>*</code> 则默认不作过滤，放行全网所有收款地址的所有多链流水。</li>
+                            <li><strong>添加日期：</strong>该通道规则进入系统的初始化时刻，系统已自动锁定并转换为 Asia/Shanghai 标准北京时间。</li>
+                            <li><strong>备注：</strong>面向管理员的补充注释区，可备注对接负责人、结算账期或商户费率等附加说明。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="addresses" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>全网收款地址列表</h3>
+                    <button class="btn btn-success" onclick="resetFormState('address'); document.getElementById('add_address_form').style.display='block'">+ 增加地址</button>
+                </div>
+                
+                <div id="add_address_form" style="display:none; background:#f8fafc; padding:20px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                    <div style="display:flex; margin-bottom:15px;">
+						<div style="flex:1.1;">
+                            <label style="font-size:0.9rem;">指定扫描网络 (仅针对多链地址)</label>
+                            <select id="new_addr_network" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;">
+                                <option value="auto">智能自动识别 (全网并发捕获)</option>
+                            </select>
+                        </div>
+                        <div style="flex:2;"><label style="font-size:0.9rem;">图标链接 (选填)</label><input type="text" id="new_addr_icon" placeholder="https://..." style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                        <div style="flex:1;"><label style="font-size:0.9rem;">网络/名称</label><input type="text" id="new_addr_name" placeholder="如: 波场主钱包" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                        <div style="flex:2;"><label style="font-size:0.9rem;">钱包地址</label><input type="text" id="new_addr_val" placeholder="输入 T 或 0x 开头的地址" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                        <div style="flex:1;"><label style="font-size:0.9rem;">备注 (选填)</label><input type="text" id="new_addr_remark" placeholder="内部备注信息" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                    </div>
+                    <div style="text-align:center;">
+                        <button class="btn" style="background:#94a3b8; margin-right:10px;" onclick="resetFormState('address')">取消</button>
+                        <button class="btn btn-success" onclick="submitNewAddress()">确认保存</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="addressTable">
+                        <thead>
+                            <tr>
+                                <th>序数ID</th>
+                                <th>网络节点</th>
+                                <th>图标/图片</th>
+                                <th>名称</th>
+                                <th>地址</th>
+                                <th>添加日期</th>
+                                <th>备注</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="address_list_body">
+                            <tr><td colspan="8" style="text-align:center; color:#94a3b8;">暂无收款地址，请点击右上角增加</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; border-left: 4px solid var(--primary);">
+                    <h4 style="margin-top:0; color:var(--text-main); font-size:1rem;">💡 收款地址参数与智能网络说明 (目前已接入 17 条公链)：</h4>
+                    <div style="display:flex;flex-wrap:wrap;font-size:13px;">
+
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="files/Tron (TRC20).webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Tron (TRC20)</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Ethereum (ERC20).webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Ethereum (ERC20)</strong>
+        </span>
+    </a>
+
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/X Layer.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-X Layer</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Aptos.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Aptos</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Arbitrum One (USDT0).webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Arbitrum</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Avalanche.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Avalanche</strong>
+        </span>
+    </a>
+
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Berachain (USDT0).webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Berachain</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Monad (USDT0).webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Monad</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Optimism.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Optimism</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Plasma.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Plasma</strong>
+        </span>
+    </a>
+
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Polygon.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Polygon</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Solana.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Solana</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/TON.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-TON</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Tempo.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Tempo</strong>
+        </span>
+    </a>
+
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/Unichain.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>USDT-Unichain</strong>
+        </span>
+    </a>
+	
+    <a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/OKT.webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>OKT</strong>
+        </span>
+    </a>
+
+	<a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+        <img src="/files/BSC (Binance Smart Chain).webp" width="52" height="52">
+        <span style="color:#e03e2d;margin-left:3px;">
+            <strong>BSC (Binance Smart Chain)</strong>
+        </span>
+	</a>
+	<a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+	        <img src="/files/Base (Coinbase L2).webp" width="52" height="52">
+	        <span style="color:#e03e2d;margin-left:3px;">
+	            <strong>Base (Coinbase L2)
+	</strong>
+	        </span>
+	</a>
+	<a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+	        <img src="/files/zkSync Era.webp" width="52" height="52">
+	        <span style="color:#e03e2d;margin-left:3px;">
+	            <strong>zkSync Era
+	</strong>
+	        </span>
+	</a>
+	<a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+	        <img src="/files/Fantom (C-Chain).webp" width="52" height="52">
+	        <span style="color:#e03e2d;margin-left:3px;">
+	            <strong>Fantom (C-Chain)</strong>
+	        </span>
+	</a>
+	<a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+	        <img src="/files/Scroll.webp" width="52" height="52">
+	        <span style="color:#e03e2d;margin-left:3px;">
+	            <strong>Scroll</strong>
+	        </span>
+	</a>
+	<a style="display:flex;align-items:center;margin-right:15px;margin-bottom:15px;border: 1px solid var(--border);padding: 3px 6px;border-radius: 5px;">
+	        <img src="/files/Celo.webp" width="52" height="52">
+	        <span style="color:#e03e2d;margin-left:3px;">
+	            <strong>Celo</strong>
+	        </span>
+	</a>
+	
+</div>
+                    <ul style="font-size: 0.85rem; color: #4b5563; line-height: 1.8; padding-left: 20px; margin-bottom:0;">
+                            <li><strong>序数ID：</strong>系统 D1 数据库主键自动递增生成的唯一地址序列号，无法篡改。</li>
+                            <li><strong>网络节点：</strong>显示该地址的扫描路由状态。若显示蓝色的 <code style="color:#0ea5e9; background:#e0f2fe;">全网并发</code>，代表系统会同时巡检该架构下的所有网络；若显示具体的网络标识（如 BSC），代表系统已将其精确定位至该单链，不再浪费其他链的 RPC 请求资源。</li>
+                            <li><strong>图标/图片：</strong>该地址的视觉徽标链接，方便在多钱包、多网络环境下直观辨别区分。</li>
+                            <li><strong>网络/名称：</strong>自定义的钱包标识名。如“波场发卡主钱包”、“业务B分流号”。</li>
+                            <li><strong>钱包地址与 JIT 精准路由（核心架构）：</strong>用于接收资产的实际链上地址。得益于系统升级的 <strong>JIT (按需唤醒)</strong> 架构，此处的地址列表主要作为“可视化资产白名单”供您管理。实际的扫块路由已 <strong>100% 由发卡网下发指令时动态接管</strong>（发卡网会精准指明：网络+地址+订单）。这意味着系统天然实现了绝对精确的单链拦截，实现了真正意义上的 0 并发资源浪费。</li>
+                            <li><strong>添加日期：</strong>录入系统的初始化时刻，自动转换为 Asia/Shanghai 标准时区。</li>
+                            <li><strong>备注：</strong>面向管理员的附加文本区，可记录该地址的归集周期、所属业务线或负责人等。</li>
+                        </ul>
+                </div>
+            </div>
+			</div>
+			<div id="networks" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>动态网络分类池</h3>
+                        <button class="btn btn-success" onclick="showAddNetworkForm()">+ 新增网络</button>
+                    </div>
+                    <div id="add_net_form" style="display:none; background:#f8fafc; padding:20px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                        <div style="display:flex; margin-bottom:15px;">
+                            <div style="flex:1;"><label style="font-size:0.9rem;">标识(如 BSC)</label><input type="text" id="net_name_id" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:1;"><label style="font-size:0.9rem;">架构(evm/tron)</label><input type="text" id="net_proto_type" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:2;"><label style="font-size:0.9rem;">RPC 节点</label><input type="text" id="net_rpc_node" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:2;"><label style="font-size:0.9rem;">USDT 合约</label><input type="text" id="net_usdt_token" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                            <div style="flex:1;"><label style="font-size:0.9rem;">精度</label><input type="number" id="net_decimals_num" value="6" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px;"></div>
+                        	<div style="flex:1;"><label style="font-size:0.9rem;">标识底色</label><input type="color" id="net_color_picker" value="#94a3b8" style="width:100%; height:40px; padding:4px; border:1px solid #cbd5e1; border-radius:6px; margin-top:5px; cursor:pointer;"></div>
+                        </div>
+                        <div style="text-align:center;">
+                            <button class="btn" style="background:#94a3b8; margin-right:10px;" onclick="document.getElementById('add_net_form').style.display='none'">取消</button>
+                            <button class="btn btn-success" onclick="executeSaveNetwork()">确认保存</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>标识</th><th>内核</th><th>RPC</th><th>合约</th><th>精度</th><th>操作</th></tr></thead>
+                            <tbody id="network_render_body"></tbody>
+                        </table>
+                    </div>
+					<div style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; border-left: 4px solid var(--primary);">
+                        <h4 style="margin-top:0; color:var(--text-main); font-size:1rem;">💡 网络节点参数配置参考说明：</h4>
+						<p style="font-size: 0.85rem; color: #0284c7; font-weight: 500; margin-bottom: 10px;">
+                            📌 提示：网络节点构成了本系统的“底层扫块引擎库”。平时它们处于休眠状态；只有当发卡网下发监控指令指定了某条网络（如 BSC）时，对应的 RPC 引擎才会被瞬间唤醒执行拦截。
+                        </p>
+                        <ul style="font-size: 0.85rem; color: #4b5563; line-height: 1.8; padding-left: 20px; margin-bottom:15px;">
+                            <li><strong>网络标识：</strong>作为系统的唯一主键（建议全大写，如 ETH、TRON）。</li>
+                            <li><strong>底层内核：</strong>用于决定挂载哪种底层扫块引擎。目前支持 <code>evm</code>、<code>tron</code>、<code>aptos</code>、<code>solana</code>、<code>ton</code>。</li>
+                            <li><strong>RPC 节点：</strong>用于请求链上数据的 API 接口。表中为公共测试节点，生产环境建议替换为您的专属私有 RPC。</li>
+                            <li><strong>代币合约：</strong>USDT 在该链上的智能合约物理地址（异构链如 Aptos/Solana/TON 无需填，系统已自动底层接管）。</li>
+                            <li><strong>精度 (Decimals)：</strong>USDT/USDTO 的小数位数。绝大多数 EVM 链与 Tron 为 <code>6</code>，少部分链（如 BSC、OKT、Berachain）为 <code>18</code>，TON 为 <code>9</code>。</li>
+                        </ul>
+                        
+                        <h5 style="margin:0 0 10px 0; color:var(--text-main); font-size:0.9rem;">常用公链 USDT 核心参数对照表：</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; background: white; border: 1px solid #e2e8f0; text-align: left;">
+                                <thead>
+                                    <tr style="background: #f1f5f9; color: #475569;">
+                                        <th style="padding:8px; border:1px solid #e2e8f0;">网络 (Network)</th>
+                                        <th style="padding:8px; border:1px solid #e2e8f0;">内核 (Type)</th>
+                                        <th style="padding:8px; border:1px solid #e2e8f0;">精度</th>
+                                        <th style="padding:8px; border:1px solid #e2e8f0;">推荐公共 RPC 节点</th>
+                                        <th style="padding:8px; border:1px solid #e2e8f0;">USDT/USDTO 合约地址</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>X Layer (USDT&USDTO)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.xlayer.tech</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x1e4a5963abfd975d8c9021ce480b42188849d41d</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Tron (TRC20)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">tron</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0; color:#94a3b8;">(底层引擎已内置波场 API)</td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Ethereum (ERC20)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://cloudflare-eth.com</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0xdac17f958d2ee523a2206206994597c13d831ec7</td></tr>
+									<tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>BSC (Binance Smart Chain)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">18</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://bsc-dataseed.binance.org</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x55d398326f99059ff775485246999027b3197955</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Aptos</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">aptos</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://fullnode.mainnet.aptoslabs.com/v1</code></td><td style="padding:8px; border:1px solid #e2e8f0; color:#94a3b8;">(异构引擎内置，留空即可)</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Arbitrum One (USDT0)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://arb1.arbitrum.io/rpc</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Avalanche C-Chain</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://api.avax.network/ext/bc/C/rpc</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Berachain (USDT0)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">18</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.berachain.com</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x0000000000000000000000000000000000000000</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Monad (USDT0)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.monad.xyz</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x0000000000000000000000000000000000000000</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Optimism (USDT&USDTO)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://mainnet.optimism.io</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x94b008aa00579c1307b0ef2c499ad98a8ce58e58</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Plasma (USDTO)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.plasmachain.com</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x0000000000000000000000000000000000000000</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Polygon (USDTO)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://polygon-rpc.com</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0xc2132d05d31c914a87c6611c10748aeb04b58e8f</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Solana</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">solana</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://api.mainnet-beta.solana.com</code></td><td style="padding:8px; border:1px solid #e2e8f0; color:#94a3b8;">(异构引擎内置，留空即可)</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>TON</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">ton</td><td style="padding:8px; border:1px solid #e2e8f0;">9</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://toncenter.com/api/v2/jsonRPC</code></td><td style="padding:8px; border:1px solid #e2e8f0; color:#94a3b8;">(异构引擎内置，留空即可)</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Tempo</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.tempo.network</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x0000000000000000000000000000000000000000</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Unichain (USDTO)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://mainnet.unichain.org</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x0000000000000000000000000000000000000000</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>OKT Chain</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">18</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://exchainrpc.okex.org</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x382bb369d343125bfb2117af9c149795c6c65c50</td></tr>
+									<tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Base (Coinbase L2)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://mainnet.base.org</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x833589fcd6edb6e08f4c7c32d4f71b54bda02913</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>zkSync Era</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://mainnet.era.zksync.io</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x493257fD37EdB34451f62EDf8D2a0C418852bA4C</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Fantom (C-Chain)</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.ftm.tools</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x049d68029688eAbF473097a2fC38ef61633A3C7A</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Scroll</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://rpc.scroll.io</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df</td></tr>
+                                    <tr><td style="padding:8px; border:1px solid #e2e8f0;"><strong>Celo</strong></td><td style="padding:8px; border:1px solid #e2e8f0;">evm</td><td style="padding:8px; border:1px solid #e2e8f0;">6</td><td style="padding:8px; border:1px solid #e2e8f0;"><code>https://forno.celo.org</code></td><td style="padding:8px; border:1px solid #e2e8f0; font-family:monospace; color:#0284c7;">0x48065fbBE25f71C9282ddf5e1cD6D6A882427259</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings" class="tab-content">
+                
+                <div class="card">
+                    <div class="card-header"><h3>安全鉴权设置</h3></div>
+                    <div class="form-group"><label>面板账号:</label><input type="text" id="set_username"></div>
+                    <div class="form-group"><label>面板密码:</label><input type="password" id="set_password"></div>
+                    <button class="btn" onclick="saveSettings()">保存基础配置</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>⚡ 即时扫块引擎配置</h3></div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                        当发卡网调用 <code>/api/watch</code> 登记订单后，系统会立即启动后台扫块。此处配置扫块的持续时长和扫描频率。
+                    </p>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>扫块持续时长 (分钟)</label>
+                                <input type="number" id="scan_duration" min="1" max="30" value="5" style="width: 100%;">
+                                <div class="form-hint">订单登记后持续扫块的时长，超时自动停止。建议 3~10 分钟。</div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>扫块间隔 (秒)</label>
+                                <input type="number" id="scan_interval" min="5" max="300" value="30" style="width: 100%;">
+                                <div class="form-hint">每次扫块之间的等待时间。建议 15~60 秒，太频繁可能被 RPC 限流。</div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>扫块间隔模式</label>
+                                <select id="scan_mode" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc;">
+                                    <option value="fixed">固定间隔 (精确)</option>
+                                    <option value="random">随机间隔 (防风控)</option>
+                                </select>
+                                <div class="form-hint">固定=精确间隔；随机=在间隔值的50%~150%之间波动，可降低被RPC节点限流的风险。</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="saveScanConfig()">💾 保存扫块配置</button>
+                    <div style="margin-top: 15px; padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981; font-size: 0.85rem; color: #166534;">
+                        <strong>💡 工作机制说明：</strong><br>
+                        • <strong>即时触发：</strong>发卡网调用 <code>/api/watch</code> 后，系统立即启动后台扫块循环，无需等待定时器。<br>
+                        • <strong>智能退出：</strong>如果所有订单都已支付（active_watches 为空），扫块循环会立即提前结束，不浪费资源。<br>
+                        • <strong>备用保底：</strong>Cloudflare Cron 定时器（每分钟）仍然保留作为安全兜底，正常情况下不会触发实际扫块。<br>
+                        • <strong>随机模式：</strong>选择"随机间隔"可以在每次扫块时随机调整等待时间，有效降低被公共 RPC 节点限流的概率。
+                    </div>
+                </div>
+            </div>
+			<div id="docs" class="tab-content">
+
+            <div class="card">
+                    <div class="card-header"><h3>📖 系统部署与多链对接使用文档</h3></div>
+                    <div class="doc-alert">
+                        <strong>架构特性：</strong> 本矩阵监控基于 Cloudflare Workers 边缘网络构建，网络节点、收款地址均已完成 KV 与驻留内存解耦。系统不仅免疫大规模 DDoS 攻击，且支持零代码动态扩容全新 EVM/Tron 兼容链。
+                    </div>
+
+                    <div class="doc-section">
+                        <h4>1. 智能多模态靓号路由与单链过滤机制</h4>
+                        <p style="color: #4b5563; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px;">
+                            系统在扫描时会实时加载【网络节点】中的全量配置，并根据【收款地址】中的指定策略进行双重路由判定：
+                        </p>
+                        <p style="color: #4b5563; font-size: 0.95rem; line-height: 1.6; padding-left: 15px; border-left: 2px solid #cbd5e1;">
+                            - <strong>精准单链绑定：</strong>若地址指定了扫描网络（如绑定了 <code>BSC</code>），扫块引擎执行时将启动精准拦截。在巡检其他链时该地址直接跳过，只调取 BSC 的 RPC 进行分析，这能节省 90% 的公共节点请求额度。<br>
+                            - <strong>智能识别全网并发：</strong>若地址保持默认的 <code>智能自动识别</code>，引擎将根据地址特征将其并发挂载到所有相符架构的网络池中：<br>
+                            &nbsp;&nbsp;• 粘贴以 <code>T</code> 开头的波场地址：自动并发出动全网所有内核类型标记为 <code>tron</code> 的网络。<br>
+                            &nbsp;&nbsp;• 粘贴以 <code>0x</code> 开头且长度为 42 的多链地址：自动并发出动全网所有内核类型标记为 <code>evm</code> 的网络（如 ETH、BSC、Polygon、Base 等）。只要任意一条链有对应代币汇入，均能秒级触发入账。
+                        </p>
+                    </div>
+
+                    <div class="doc-section">
+                        <h4>2. 边缘高频轮询 (Cron Task) 配置</h4>
+                        <p style="color: #4b5563; font-size: 0.95rem; line-height: 1.6;">
+                            监控任务默认由全局 <code>scheduled</code> 定时器接管。系统在代码中配置了每分钟自动重置最新块高并向前追溯 50 个区块的防漏防错逻辑。若部署后发现无法自动巡检，请确保您在 Cloudflare 控制台的 <code>Workers -> 设置 -> 触发器 -> 自动化</code> 中正确挂载了 Cron 表达式：<code>* * * * *</code>。
+                        </p>
+                    </div>
+					<div class="doc-section">
+                        <h4>3. Serverless 按需唤醒机制 (0 RPC 浪费架构)</h4>
+                        <p style="color: #4b5563; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px;">
+                            为了防止全局盲扫导致区块链 RPC 节点封禁您的 IP，本系统采用了最高级的<strong>“按需监控 (JIT)”</strong>架构。平时处于 0 消耗休眠状态。
+                        </p>
+                        <ul style="font-size: 0.85rem; color: #4b5563; line-height: 1.8; padding-left: 20px; margin-bottom:0;">
+                            <li><strong>唤醒指令：</strong>客户在下游系统（如发卡网）点击下单的瞬间，发卡网需向本系统发送 <code>POST /api/watch</code> 请求，将订单地址和金额推入活跃监控池。</li>
+                            <li><strong>自动清理：</strong>系统精准扫到对应金额入账后，会立即将其踢出监控池并触发下发货回调；若客户超过 30 分钟未支付，系统也会自动执行垃圾回收（GC），彻底切断对该地址的无意义轮询。</li>
+                        </ul>
+                    </div>
+
+                    <div class="doc-section">
+                        <h4>4. 下游接货网关防双花安全验签 (PHP 示例)</h4>
+                        <p style="color: #4b5563; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px;">
+                            由于系统支持多链混扫，**必须杜绝攻击者使用某一条链上的历史交易哈希去欺骗其他链网关的行为**。因此系统向您的 <code>CALLBACK_URL</code> 发送 POST 数据包时，加密签名的拼接顺序已升级为：<code>网络标识 + 交易哈希 + 金额 + APP_SECRET</code>。
+                        </p>
+                        <div class="doc-code">
+&lt;?php
+// 接收监控矩阵发来的原始 JSON 报文
+$rawBody = file_get_contents('php://input');
+$notifyData = json_decode($rawBody, true);
+
+if (!$notifyData) {
+    die(json_encode(["code" => 400, "msg" => "无效请求"]));
+}
+
+// 1. 提取订单核心验签要素
+$network      = $notifyData['network'];       // 动态拿到到账的网络标识，如 BSC / TRON
+$tx_hash      = $notifyData['tx_hash'];       // 区块链唯一交易哈希（请设为数据库唯一索引防止重放）
+$amount       = $notifyData['amount'];         // 过滤精度后的纯数字转账金额，如 100.5
+$signReceived = $notifyData['sign'];           // 矩阵网关生成的签名密文
+$timestamp    = $notifyData['timestamp'];      // 矩阵秒级捕获时刻的时间戳
+
+// 2. 严格按顺序构造本地签名
+$app_secret   = "您在回调路由面板中自定义设置的加密密钥";
+$stringToSign = $network . $tx_hash . $amount . $app_secret;
+$calculatedSign = hash('sha256', $stringToSign);
+
+// 3. 校验对比
+if ($calculatedSign !== $signReceived) {
+    http_response_code(403);
+    die(json_encode(["code" => 403, "msg" => "网关验证未通过：签名非法"]));
+}
+
+// 4. 验签通过，执行发货/充值业务逻辑
+// TODO: 执行具体的卡密发放或商户余额入账
+// ...
+
+echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
+?&gt;
+                        </div>
+                    </div>
+
+                    <div class="doc-section" style="margin-bottom: 0;">
+                        <h4>5. 🪐 完整对接流转与报文数据示例</h4>
+                        <p style="color: #4b5563; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px;">
+                            为了方便调试，以下展示一个真实的资产充值触发事件全流程演练。
+                        </p>
+                        <div style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-size: 0.85rem; color: #334155; line-height: 1.6; margin-bottom: 12px;">
+                            <strong>情景设定：</strong><br>
+                            - 管理员在【网络节点】中配置了网络标识 <code>BSC</code>，设置精度 <code>18</code>。<br>
+                            - 管理员在【回调路由】中添加了发卡网，设置通信密钥 <code>my_secret_888</code>。<br>
+                            - 某客户通过币安智能链（BSC）向您的钱包地址成功转账了 <strong>250 USDT</strong>。
+                        </div>
+                        <p style="color: #4b5563; font-size: 0.9rem; font-weight: 600; margin: 10px 0 5px 0;">(1) 矩阵监控引擎自动向发卡网网关发送的异步 POST 原始 JSON 报文示例：</p>
+                        <div class="doc-code" style="background: #0f172a; color: #38bdf8;">
+{
+    "network": "BSC",
+    "tx_hash": "0x4f87a321ba99dcd7654321098bcdaeafe0123456789abcdef0123456789abcde",
+    "amount": "250",
+    "from_address": "0x9876543210abcdef0123456789abcdef01234567",
+    "to_address": "0x1234567890abcdef0123456789abcdef01234567",
+    "sign": "9e2c450a8b12f6cd7e89ab10fe34dcba56781234efcdab5678901234abcdef01",
+    "timestamp": 1779600000000
+}
+                        </div>
+                        <p style="color: #4b5563; font-size: 0.9rem; font-weight: 600; margin: 12px 0 5px 0;">(2) 发卡网接收端后台执行的 SHA256 签名拼接拆解：</p>
+                        <div style="background: white; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; font-size: 0.8rem; font-family: monospace; line-height: 1.5; color: #334155;">
+                            待签名字串 = network + tx_hash + amount + APP_SECRET<br>
+                            拼接明文 = "BSC" + "0x4f87a321..." + "250" + "my_secret_888"<br>
+                            最终明文 = <span style="color:#e11d48;">"BSC0x4f87a321ba99dcd7654321098bcdaeafe0123456789abcdef0123456789abcde250my_secret_888"</span><br>
+                            哈希结果 = hash('sha256', 最终明文) -> 等于报文中的 sign 密文，对比通过！
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+		// 移动端侧边栏显隐控制
+        function toggleMobileMenu(forceClose = false) {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            if (forceClose || sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('open');
+            } else {
+                sidebar.classList.add('open');
+                overlay.classList.add('open');
+            }
+        }
+
+        let editWebhookId = null;
+        let editAddressId = null;
+        let globalWebhooks = [];
+        let globalAddresses = [];
+		let globalAddressBindings = {}; // 用于全局缓存地址的网络绑定关系
+
+        function resetFormState(type) {
+            if(type === 'webhook') { editWebhookId = null; document.getElementById('add_webhook_form').style.display='none'; }
+			if(type === 'address') { editAddressId = null; document.getElementById('add_address_form').style.display='none'; 
+                // 【新增】重置网络选择下拉框
+                const netSelect = document.getElementById('new_addr_network');
+                if (netSelect) netSelect.value = 'auto';
+            }
+            ['new_wh_name', 'new_wh_url', 'new_wh_secret', 'new_wh_binds', 'new_wh_icon', 'new_wh_remark', 'new_addr_name', 'new_addr_val', 'new_addr_icon', 'new_addr_remark'].forEach(id => {
+                let el = document.getElementById(id);
+                if(el) {
+                    if (id === 'new_wh_binds') {
+                        Array.from(el.options).forEach(opt => opt.selected = (opt.value === '*'));
+                    } else {
+                        el.value = '';
+                    }
+                }
+            });
+        }
+        
+        function switchTab(tabId, title) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById('current-page-title').innerText = title;
+            if (window.innerWidth <= 768) toggleMobileMenu(true);
+        }
+
+        async function initData() {
+            const confRes = await fetch('/api/settings');
+            const config = await confRes.json();
+            document.getElementById('set_username').value = config.username || '';
+            document.getElementById('set_password').value = config.password || '';
+            // 拉取 D1 数据库中的收款地址
+            await renderNetworksGrid();
+            loadAddresses();
+            loadScanConfig(); // 【新增】加载扫块配置
+
+            const res = await fetch('/api/orders');
+            const data = await res.json();
+            const table = document.getElementById('txTable');
+            data.forEach(row => {
+                const tr = table.insertRow();
+                // 强制将网络名称转为大写，防止因旧数据为小写(如 tron)导致 CSS 和链接匹配失败
+                const netName = (row.network || 'UNKNOWN').toUpperCase();
+                const showName = (networkCachePool[netName] && networkCachePool[netName].displayName) ? networkCachePool[netName].displayName : netName;
+                const bgColor = (networkCachePool[netName] && networkCachePool[netName].color) ? networkCachePool[netName].color : '#94a3b8';
+                const netBadge = `<span class="net-badge" style="background: ${bgColor}">${showName}</span>`;
+                
+                // 分离付款方与收款方 UI（使用不同底色做区分）
+                const fromAddr = row.from_address ? `<span class="address-tag" style="background:#f1f5f9; color:#64748b; border: 1px solid #e2e8f0;" title="${row.from_address}">${row.from_address}</span>` : '-';
+                const toAddr = row.to_address ? `<span class="address-tag" style="border: 1px solid #bae6fd;" title="${row.to_address}">${row.to_address}</span>` : '-';
+                
+                let explorerUrl = "#";
+                if(netName === 'TRON') explorerUrl = `https://tronscan.org/#/transaction/${row.tx_hash}`;
+                if(netName === 'BSC') explorerUrl = `https://bscscan.com/tx/${row.tx_hash}`;
+                if(netName === 'ETH') explorerUrl = `https://etherscan.io/tx/${row.tx_hash}`;
+                if(netName === 'AVAX') explorerUrl = `https://snowtrace.io/tx/${row.tx_hash}`;
+                if(netName === 'ARBITRUM') explorerUrl = `https://arbiscan.io/tx/${row.tx_hash}`;
+                if(netName === 'OPTIMISM') explorerUrl = `https://optimistic.etherscan.io/tx/${row.tx_hash}`;
+                if(netName === 'POLYGON') explorerUrl = `https://polygonscan.com/tx/${row.tx_hash}`;
+                if(netName === 'XLAYER') explorerUrl = `https://www.okx.com/web3/explorer/xlayer/tx/${row.tx_hash}`;
+                if(netName === 'OKT') explorerUrl = `https://www.oklink.com/oktc/tx/${row.tx_hash}`;
+                if(netName === 'APTOS') explorerUrl = `https://explorer.aptoslabs.com/txn/${row.tx_hash}?network=mainnet`;
+                if(netName === 'SOLANA') explorerUrl = `https://solscan.io/tx/${row.tx_hash}`;
+                if(netName === 'TON') explorerUrl = `https://tonviewer.com/transaction/${row.tx_hash}`;
+                if(['BERACHAIN', 'MONAD', 'PLASMA', 'TEMPO', 'UNICHAIN'].includes(netName)) explorerUrl = `https://explorer.${netName.toLowerCase()}.org/tx/${row.tx_hash}`;
+
+                // 状态中英文映射器
+                let statusStr = (row.status || 'pending').toLowerCase();
+                let statusMap = {
+                    'pending': { text: '处理中 (Pending)', class: 'status-pending' },
+                    'success': { text: '已确认 (Success)', class: 'status-success' }
+                };
+                let currentStatus = statusMap[statusStr] || { text: row.status.toUpperCase(), class: 'status-success' };
+
+                tr.innerHTML = `
+                    <td style="text-align: center;"><input type="checkbox" class="tx-checkbox" data-hash="${row.tx_hash}" data-network="${netName}"></td>
+                    <td>${netBadge}</td>
+                    <td><a href="${explorerUrl}" target="_blank" class="hash-tag" title="${row.tx_hash}">${row.tx_hash}</a></td>
+                    <td>${fromAddr}</td>
+                    <td>${toAddr}</td>
+                    <td><strong style="color:#ff0000; font-size:1.15em;">+ ${row.amount}</strong></td>
+                    <td><span style="color:var(--text-muted); font-size:0.85em;">${new Date(row.created_at).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</span></td>
+                    <td><span class="status-badge ${currentStatus.class}">${currentStatus.text}</span></td>
+                    <td><button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem; background: #ef4444;" onclick="deleteSingleOrder('${row.tx_hash}', '${netName}')">删除</button></td>
+                `;
+            });
+
+            // 异步加载数据库中的全新回调路由列表
+            loadWebhooks();
+        }
+
+        // ================= 回调路由 CRUD 逻辑 =================
+        async function loadWebhooks() {
+            try {
+                const res = await fetch('/api/webhooks');
+                const list = await res.json();
+                globalWebhooks = list;
+                const tbody = document.getElementById('webhook_list_body');
+                tbody.innerHTML = '';
+                
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#94a3b8;">暂无回调路由，请点击右上角增加</td></tr>';
+                    return;
+                }
+
+                list.forEach(item => {
+                    const iconHtml = item.icon ? `<img src="${item.icon}" style="width:39px; height:39px; border-radius:50%; object-fit:cover;">` : '无';
+                    const timeStr = new Date(item.created_at).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'});
+                    const statusChecked = item.enabled ? 'checked' : '';
+                    
+                    // 核心修改：视觉层屏蔽后端的 @@ 隔离符号，只显示干净的物理地址。
+                    // 加入 title 属性，鼠标悬停时依然可以查看底层真实的绑定网关。
+                    const displayBinds = item.binds === '*' ? '*' : item.binds.split(',').map(s => s.split('@@')[0]).join(', ');
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>#${item.id}</td>
+                            <td>${iconHtml}</td>
+                            <td style="font-weight:500;">${item.name}</td>
+                            <td style="font-family:monospace; font-size:0.85em; color:#0284c7; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.url}">${item.url}</td>
+                            <td style="font-family:monospace; color:#e67e22;">${item.secret}</td>
+                            <td><span class="address-tag" style="font-size:0.9em; background:#f1f5f9; color:#475569;" title="底层隔离网关: ${item.binds}">${displayBinds}</span></td>
+                            <td style="font-size:0.85em; color:var(--text-muted);">${timeStr}</td>
+                            <td style="color:var(--text-muted); font-size:0.85em;">${item.remark || '-'}</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" ${statusChecked} onchange="toggleWebhookStatus(${item.id}, this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </td>
+                            <td>
+                                <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="editWebhookData(${item.id})">编辑</button>
+                                <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteWebhook(${item.id})">删除</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) { console.error("加载回调失败", e); }
+        }
+
+        async function submitNewWebhook() {
+            const data = {
+                name: document.getElementById('new_wh_name').value.trim(),
+                url: document.getElementById('new_wh_url').value.trim(),
+                secret: document.getElementById('new_wh_secret').value.trim(),
+                binds: document.getElementById('new_wh_binds').value || '*',
+                icon: document.getElementById('new_wh_icon').value.trim(),
+                remark: document.getElementById('new_wh_remark').value.trim()
+            };
+            if (!data.name || !data.url || !data.secret) return alert("名称、URL 和密钥为必填项！");
+            
+            if (editWebhookId) {
+                data.id = editWebhookId;
+                await fetch('/api/webhooks', { method: 'PUT', body: JSON.stringify(data) });
+            } else {
+                await fetch('/api/webhooks', { method: 'POST', body: JSON.stringify(data) });
+            }
+            resetFormState('webhook');
+            loadWebhooks();
+        }
+        function editWebhookData(id) {
+            const item = globalWebhooks.find(x => x.id === id);
+            if (!item) return;
+            editWebhookId = id;
+            document.getElementById('new_wh_name').value = item.name;
+            document.getElementById('new_wh_url').value = item.url;
+            document.getElementById('new_wh_secret').value = item.secret;
+            document.getElementById('new_wh_binds').value = item.binds.includes(',') ? '*' : item.binds;
+            document.getElementById('new_wh_icon').value = item.icon || '';
+            document.getElementById('new_wh_remark').value = item.remark || '';
+            document.getElementById('add_webhook_form').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function deleteWebhook(id) {
+            if (!confirm(`确定要彻底删除 ID 为 ${id} 的回调节点吗？`)) return;
+            await fetch(`/api/webhooks?id=${id}`, { method: 'DELETE' });
+            loadWebhooks();
+        }
+
+        async function toggleWebhookStatus(id, enabled) {
+            await fetch(`/api/webhooks?id=${id}&status=${enabled ? 1 : 0}`, { method: 'PUT' });
+        }
+        // ================= 收款地址 CRUD 逻辑 =================
+        async function loadAddresses() {
+            try {
+                const res = await fetch('/api/addresses');
+                const list = await res.json();
+				// 【新增】拉取 KV 中的地址单链绑定关系
+                const bindRes = await fetch('/api/address-bindings');
+                const bindings = await bindRes.json();
+				globalAddressBindings = bindings; // 保存到全局变量，方便编辑时读取
+                globalAddresses = list;
+                const tbody = document.getElementById('address_list_body');
+                tbody.innerHTML = '';
+                
+                if (list.length === 0) {
+					tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8;">暂无收款地址，请点击右上角增加</td></tr>';
+                    return;
+                }
+
+                list.forEach(item => {
+                    const iconHtml = item.icon ? `<img src="${item.icon}" style="width:39px; height:39px; border-radius:50%;">` : '无';
+                    const timeStr = new Date(item.created_at).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'});
+                    // 改为使用序号 ID 获取绑定网络，彻底解耦
+                    const boundNet = bindings[item.id.toString()];
+                    const showName = (boundNet && networkCachePool[boundNet] && networkCachePool[boundNet].displayName) ? networkCachePool[boundNet].displayName : boundNet;
+                    // 从全局缓存中获取该网络的颜色配置，如果没有配置则默认 #94a3b8
+                    const netColor = (networkCachePool[boundNet] && networkCachePool[boundNet].color) ? networkCachePool[boundNet].color : '#94a3b8';
+                    const netBadgeHtml = boundNet ? `<span class="net-badge" style="background: ${netColor}">${showName}</span>` : `<span class="net-badge" style="background:#0ea5e9;">全网并发</span>`;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>#${item.id}</td>
+                            <td>${netBadgeHtml}</td>
+                            <td>${iconHtml}</td>
+                            <td style="font-weight:500;">${item.name}</td>
+                            <td style="font-family:monospace; color:#0284c7;">${item.address}</td>
+                            <td style="font-size:0.85em; color:var(--text-muted);">${timeStr}</td>
+                            <td>${item.remark || '-'}</td>
+                            <td>
+                                <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="editAddressData(${item.id})">编辑</button>
+                                <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteAddress(${item.id})">删除</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                // --- 动态渲染回调路由的下拉框 (分离独立显示) ---
+                const whSelect = document.getElementById('new_wh_binds');
+                whSelect.innerHTML = '<option value="*">[*] 接收所有地址回调</option>';
+                
+                list.forEach(item => {
+                    const option = document.createElement('option');
+                    const boundNet = bindings[item.id.toString()] || '全网并发';
+                    
+                    // 转换为漂亮的名字用于展示
+                    const showNetName = (boundNet !== '全网并发' && networkCachePool[boundNet] && networkCachePool[boundNet].displayName) ? networkCachePool[boundNet].displayName : boundNet;
+                    
+                    // 核心修复：把“地址”和“底层网络”用 @@ 连起来作为唯一标识传给后端
+                    // 这样就算地址一模一样，只要绑定的网络不同，下拉框就不会错位！
+                    option.value = item.address + '@@' + boundNet; 
+                    option.textContent = `[ID#${item.id} - ${showNetName}] ${item.name} (${item.address.substring(0,8)}...${item.address.substring(item.address.length-4)})`;
+                    whSelect.appendChild(option);
+                });
+            } catch (e) { console.error("加载地址失败", e); }
+        }
+
+        async function submitNewAddress() {
+            const data = {
+                name: document.getElementById('new_addr_name').value.trim(),
+                address: document.getElementById('new_addr_val').value.trim(),
+                icon: document.getElementById('new_addr_icon').value.trim(),
+                remark: document.getElementById('new_addr_remark').value.trim()
+            };
+            if (!data.name || !data.address) return alert("名称和地址为必填项！");
+            
+            let currentId = editAddressId;
+            if (editAddressId) {
+                data.id = editAddressId;
+                await fetch('/api/addresses', { method: 'PUT', body: JSON.stringify(data) });
+            } else {
+                const res = await fetch('/api/addresses', { method: 'POST', body: JSON.stringify(data) });
+                const resData = await res.json();
+                currentId = resData.id; // 提取数据库刚刚生成的序号ID
+            }
+            
+            const selectedNet = document.getElementById('new_addr_network').value;
+            await fetch('/api/address-bindings', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: currentId, network: selectedNet }) // 核心解耦：将 address 换成 id 发送给后端
+            });
+			// 延时 800 毫秒，等待 Cloudflare KV 在全球边缘节点完成数据同步
+            await new Promise(r => setTimeout(r, 800));
+            resetFormState('address');
+            loadAddresses(); // 重新渲染表格
+        }
+
+        function editAddressData(id) {
+            const item = globalAddresses.find(x => x.id === id);
+            if (!item) return;
+            editAddressId = id;
+            document.getElementById('new_addr_name').value = item.name;
+            document.getElementById('new_addr_val').value = item.address;
+            document.getElementById('new_addr_icon').value = item.icon || '';
+            document.getElementById('new_addr_remark').value = item.remark || '';
+            document.getElementById('new_addr_network').value = globalAddressBindings[id.toString()] || 'auto';
+            document.getElementById('add_address_form').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function deleteAddress(id) {
+            if (!confirm(`确定要删除 ID 为 ${id} 的监控地址吗？`)) return;
+            await fetch(`/api/addresses?id=${id}`, { method: 'DELETE' });
+            loadAddresses();
+        }
+        async function saveSettings() {
+            const data = {
+                username: document.getElementById('set_username').value,
+                password: document.getElementById('set_password').value
+            };
+            await fetch('/api/settings', { method: 'POST', body: JSON.stringify(data) });
+            alert('✅ 基础配置保存成功！'); location.reload();
+        }
+
+        // 【新增】加载扫块配置
+        async function loadScanConfig() {
+            try {
+                const res = await fetch('/api/scan-config');
+                const config = await res.json();
+                document.getElementById('scan_duration').value = config.duration || '5';
+                document.getElementById('scan_interval').value = config.interval || '30';
+                document.getElementById('scan_mode').value = config.mode || 'fixed';
+            } catch (e) { console.error("加载扫块配置失败", e); }
+        }
+
+        // 【新增】保存扫块配置
+        async function saveScanConfig() {
+            const data = {
+                duration: document.getElementById('scan_duration').value,
+                interval: document.getElementById('scan_interval').value,
+                mode: document.getElementById('scan_mode').value
+            };
+            await fetch('/api/scan-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('✅ 扫块配置保存成功！');
+        }
+		// 【新增】前端网络分类交互逻辑
+        let networkCachePool = {};
+		let editNetworkOldKey = null; // 用于记录当前正在编辑的网络旧标识
+
+        // 唤起新增网络表单并清空历史残留数据
+        function showAddNetworkForm() {
+            editNetworkOldKey = null;
+            document.getElementById('net_name_id').value = '';
+            document.getElementById('net_proto_type').value = '';
+            document.getElementById('net_rpc_node').value = '';
+            document.getElementById('net_usdt_token').value = '';
+            document.getElementById('net_decimals_num').value = '6';
+            document.getElementById('add_net_form').style.display = 'block';
+        }
+
+        async function renderNetworksGrid() {
+            const res = await fetch('/api/networks');
+            networkCachePool = await res.json();
+            const tbody = document.getElementById('network_render_body');
+            const netSelect = document.getElementById('new_addr_network');
+            
+            tbody.innerHTML = '';
+            if (netSelect) netSelect.innerHTML = '<option value="auto">智能自动识别 (全网并发捕获)</option>';
+
+            for (const [netKey, conf] of Object.entries(networkCachePool)) {
+                const showName = conf.displayName || netKey;
+                if (netSelect) netSelect.innerHTML += `<option value="${netKey}">${showName} (${conf.type.toUpperCase()})</option>`;
+                tbody.innerHTML += `
+                    <tr>
+						<td><span class="net-badge" style="background: ${conf.color || '#94a3b8'}">${showName}</span></td>
+                        <td><strong>${conf.type.toUpperCase()}</strong></td>
+                        <td style="font-family:monospace; font-size:12px;">${conf.rpc || '-'}</td>
+                        <td style="font-family:monospace; font-size:12px; color:#0284c7;">${conf.usdt || '-'}</td>
+                        <td>${conf.decimals}</td>
+                        <td>
+                            <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="modifyNetworkRow('${netKey}')">编辑</button>
+                            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeNetworkRow('${netKey}')">删除</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function executeSaveNetwork() {
+			const rawName = document.getElementById('net_name_id').value.trim().toUpperCase();
+            const keyId = rawName.replace(/[^A-Z0-9]/g, '');
+		    if(!keyId) return alert("标识不能为空");
+            // 如果处于编辑状态，且你修改了标识名称，就把旧标识的数据删掉，防止重复添加
+            if (editNetworkOldKey && editNetworkOldKey !== keyId) {
+                delete networkCachePool[editNetworkOldKey];
+            }
+            
+            networkCachePool[keyId] = {
+				displayName: rawName,
+                type: document.getElementById('net_proto_type').value.trim(),
+                rpc: document.getElementById('net_rpc_node').value.trim(),
+				color: document.getElementById('net_color_picker').value.trim(), 
+                usdt: document.getElementById('net_usdt_token').value.trim(),
+                decimals: parseInt(document.getElementById('net_decimals_num').value) || 6
+            };
+            await fetch('/api/networks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(networkCachePool) });
+            document.getElementById('add_net_form').style.display = 'none';
+            editNetworkOldKey = null; // 保存成功后清空记录
+            renderNetworksGrid();
+        }
+
+        function modifyNetworkRow(keyId) {
+            const conf = networkCachePool[keyId];
+            if(!conf) return;
+			editNetworkOldKey = keyId; // 记录当前点击编辑的原始网络标识
+            document.getElementById('net_name_id').value = conf.displayName || keyId;
+            document.getElementById('net_proto_type').value = conf.type;
+            document.getElementById('net_rpc_node').value = conf.rpc || '';
+            document.getElementById('net_color_picker').value = conf.color || '#94a3b8'; // 添加此行
+            document.getElementById('net_usdt_token').value = conf.usdt || '';
+            document.getElementById('net_decimals_num').value = conf.decimals;
+            document.getElementById('add_net_form').style.display = 'block';
+        }
+
+        async function removeNetworkRow(keyId) {
+            if(!confirm(`确认删除 ${keyId} 网络？`)) return;
+            delete networkCachePool[keyId];
+            await fetch('/api/networks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(networkCachePool) });
+            renderNetworksGrid();
+        }
+
+        async function syncChain() {
+            alert('📡 指令已下发！系统正在并发抓取多链数据。稍后请刷新页面。');
+            await fetch('/api/sync', {method: 'POST'});
+            location.reload();
+        }
+
+        // --- 新增：流水复选框全选/反选逻辑 ---
+        function toggleSelectAllTx(checked) {
+            document.querySelectorAll('.tx-checkbox').forEach(cb => cb.checked = checked);
+        }
+
+        // --- 新增：删除单条流水数据 ---
+        async function deleteSingleOrder(txHash, network) {
+            if (!confirm('确定要删除这笔交易流水记录吗？')) return;
+            try {
+                const res = await fetch(`/api/orders?tx_hash=${encodeURIComponent(txHash)}&network=${encodeURIComponent(network)}`, {
+                    method: 'DELETE'
+                });
+                const result = await res.json();
+                if (result.success) { location.reload(); } else { alert('删除失败'); }
+            } catch (e) { console.error(e); alert('网络异常'); }
+        }
+
+        // --- 新增：批量删除选中的流水数据 ---
+        async function batchDeleteOrders() {
+            const checkedBoxes = document.querySelectorAll('.tx-checkbox:checked');
+            if (checkedBoxes.length === 0) return alert('请先勾选需要删除的交易流水！');
+            if (!confirm(`确定要批量删除这 ${checkedBoxes.length} 条流水记录吗？`)) return;
+
+            const itemsToDelete = Array.from(checkedBoxes).map(cb => ({
+                tx_hash: cb.getAttribute('data-hash'),
+                network: cb.getAttribute('data-network')
+            }));
+
+            try {
+                const res = await fetch('/api/orders', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: itemsToDelete })
+                });
+                const result = await res.json();
+                if (result.success) { location.reload(); } else { alert('批量删除失败'); }
+            } catch (e) { console.error(e); alert('批量处理异常'); }
+        }
+
+        initData();
+    </script>
+</body>
+</html>

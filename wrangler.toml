@@ -1,0 +1,34 @@
+name = "xy-usdt"
+main = "worker.js"
+compatibility_date = "2026-05-20"
+
+# 定时任务：每 1 分钟执行一次链上巡检
+[triggers]
+crons = ["* * * * *"]
+
+# 绑定 KV 数据库
+[[kv_namespaces]]
+binding = "kv"
+id = "6af7f7a56e9341edb03883c67e01781c"
+
+# 绑定 D1 数据库
+[[d1_databases]]
+binding = "db"
+database_name = "xy-usdt"
+database_id = "be97c23d-c895-4596-a876-b9b84c79bdd1"
+
+# ==========================================
+# 【新增】配置规则：允许将 .html 当作文本模块导入
+# ==========================================
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+# ==========================================
+# 【新增】开启 Cloudflare Workers 静态资源原生托管
+# ==========================================
+[assets]
+binding = "assets"       # 绑定静态资源服务
+directory = "public"     # 指定上传 public 文件夹
+run_worker_first = true  # 优先执行 Worker 内部的 API 路由
