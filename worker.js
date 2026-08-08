@@ -497,10 +497,10 @@ export default {
                     <label>登录密码</label>
                     <input type="password" name="password" placeholder="请输入登录密码" required autocomplete="current-password">
                 </div>
-                <div class="form-group" id="captcha_group" style="display:none;">
+                <div class="form-group" id="captcha_group">
                     <label>验证码</label>
                     <div style="display:flex;align-items:center;">
-                        <input type="text" name="captcha_code" placeholder="请输入验证码" autocomplete="off" maxlength="4" style="flex:1;text-transform:uppercase;letter-spacing:4px;text-align:center;">
+                        <input type="text" name="captcha_code" placeholder="请输入验证码" required autocomplete="off" maxlength="4" style="flex:1;text-transform:uppercase;letter-spacing:4px;text-align:center;">
                         <div id="captcha_img" style="cursor:pointer;height:40px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid hsl(220,13%,91%);margin-left:10px;" onclick="loadCaptcha()" title="点击刷新验证码"></div>
                     </div>
                     <input type="hidden" name="captcha_id" id="captcha_id">
@@ -521,17 +521,17 @@ export default {
                     document.getElementById('captcha_id').value = data.id;
                 } catch(e) { console.error('验证码加载失败', e); }
             }
+            loadCaptcha(); // 默认先加载验证码
             // 检查验证码是否启用
             (async function(){
                 try {
                     const res = await fetch('/api/settings');
                     const cfg = await res.json();
-                    if(cfg.captcha_enabled !== false) {
-                        document.getElementById('captcha_group').style.display = '';
-                        document.querySelector('input[name="captcha_code"]').setAttribute('required','');
-                        loadCaptcha();
+                    if(cfg.captcha_enabled === false) {
+                        document.getElementById('captcha_group').style.display = 'none';
+                        document.querySelector('input[name="captcha_code"]').removeAttribute('required');
                     }
-                } catch(e) { /* 配置加载失败，保持隐藏 */ }
+                } catch(e) { /* 配置加载失败，保持显示验证码（安全兜底） */ }
             })();
             </script>
             <div class="login-footer">
