@@ -443,7 +443,7 @@ export default {
                 <div class="brand-logo-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </div>
-                <span class="brand-logo-text"><svg viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-2px;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>USDT收款全链矩阵</span>
+                <span class="brand-logo-text">夏雨全链矩阵</span>
             </div>
             <h1 class="brand-title">非托管全链 USDT 收款<br>一站式监控矩阵</h1>
             <p class="brand-desc">覆盖 20+ 主流公链，边缘节点实时拦截入账，秒级触发回调通知。为您的发卡网、商户系统提供企业级稳定收款能力。</p>
