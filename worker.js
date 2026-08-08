@@ -231,7 +231,6 @@ export default {
             display: flex;
             align-items: flex-start;
             padding: 16px 0;
-            border-left: 2px solid rgba(255,255,255,0.2);
             padding-left: 20px;
             position: relative;
         }
