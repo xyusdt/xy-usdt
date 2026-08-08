@@ -112,15 +112,18 @@ export default {
         // ==========================================
         if (url.pathname === "/login" && request.method === "POST") {
             const data = await request.formData();
-            const captchaId = data.get("captcha_id");
-            const captchaCode = data.get("captcha_code");
-            if (!captchaId || !captchaCode) {
-                return new Response(null, { status: 302, headers: { 'Location': '/?err=请输入验证码' } });
-            }
-            const storedCode = await env.kv.get(`captcha_${captchaId}`);
-            await env.kv.delete(`captcha_${captchaId}`);
-            if (!storedCode || storedCode.toUpperCase() !== captchaCode.toUpperCase()) {
-                return new Response(null, { status: 302, headers: { 'Location': '/?err=验证码错误' } });
+            const captchaEnabled = (await env.kv.get("captcha_enabled")) !== "0";
+            if (captchaEnabled) {
+                const captchaId = data.get("captcha_id");
+                const captchaCode = data.get("captcha_code");
+                if (!captchaId || !captchaCode) {
+                    return new Response(null, { status: 302, headers: { 'Location': '/?err=请输入验证码' } });
+                }
+                const storedCode = await env.kv.get(`captcha_${captchaId}`);
+                await env.kv.delete(`captcha_${captchaId}`);
+                if (!storedCode || storedCode.toUpperCase() !== captchaCode.toUpperCase()) {
+                    return new Response(null, { status: 302, headers: { 'Location': '/?err=验证码错误' } });
+                }
             }
             if (data.get("username") === await env.kv.get("admin_username") && data.get("password") === await env.kv.get("admin_password")) {
                 const token = crypto.randomUUID();
@@ -492,7 +495,7 @@ export default {
                     <label>登录密码</label>
                     <input type="password" name="password" placeholder="请输入登录密码" required autocomplete="current-password">
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="captcha_group">
                     <label>验证码</label>
                     <div style="display:flex;gap:10px;align-items:center;">
                         <input type="text" name="captcha_code" placeholder="请输入验证码" required autocomplete="off" maxlength="4" style="flex:1;text-transform:uppercase;letter-spacing:4px;text-align:center;">
@@ -516,7 +519,18 @@ export default {
                     document.getElementById('captcha_id').value = data.id;
                 } catch(e) { console.error('验证码加载失败', e); }
             }
-            loadCaptcha();
+            // 检查验证码是否启用
+            (async function(){
+                try {
+                    const res = await fetch('/api/settings');
+                    const cfg = await res.json();
+                    if(cfg.captcha_enabled === false) {
+                        document.getElementById('captcha_group').style.display = 'none';
+                    } else {
+                        loadCaptcha();
+                    }
+                } catch(e) { loadCaptcha(); }
+            })();
             </script>
             <div class="login-footer">
                 <p>© 夏雨全链矩阵 · Powered by Cloudflare Workers</p>
@@ -594,11 +608,13 @@ export default {
                 const data = await request.json();
                 if (data.username) await env.kv.put("admin_username", data.username);
                 if (data.password) await env.kv.put("admin_password", data.password);
+                if (data.captcha_enabled !== undefined) await env.kv.put("captcha_enabled", data.captcha_enabled ? "1" : "0");
                 return new Response(JSON.stringify({ success: true }));
             }
             return new Response(JSON.stringify({
                 username: await env.kv.get("admin_username"), 
                 password: await env.kv.get("admin_password"),
+                captcha_enabled: (await env.kv.get("captcha_enabled")) !== "0",
             }), { headers: { "Content-Type": "application/json" } });
         }
 

@@ -579,6 +579,13 @@
                             <span onclick="togglePwd()" id="pwd_eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#94a3b8;font-size:1.1rem;user-select:none;">👁</span>
                         </div>
                     </div>
+                    <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+                        <label style="margin-bottom:0;">登录页验证码:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="set_captcha_enabled" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                     <button class="btn" onclick="saveSettings()">保存基础配置</button>
                 </div>
 
@@ -792,6 +799,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             const confRes = await fetch('/api/settings');
             const config = await confRes.json();
             document.getElementById('set_username').value = config.username || '';
+                document.getElementById('set_captcha_enabled').checked = config.captcha_enabled !== false;
             document.getElementById('set_password').value = config.password || '';
             // 拉取 D1 数据库中的收款地址
             await renderNetworksGrid();
@@ -1066,7 +1074,8 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
         async function saveSettings() {
             const data = {
                 username: document.getElementById('set_username').value,
-                password: document.getElementById('set_password').value
+                password: document.getElementById('set_password').value,
+                captcha_enabled: document.getElementById('set_captcha_enabled').checked
             };
             await fetch('/api/settings', { method: 'POST', body: JSON.stringify(data) });
             alert('✅ 基础配置保存成功！'); location.reload();
