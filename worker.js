@@ -526,6 +526,7 @@ export default {
                     const cfg = await res.json();
                     if(cfg.captcha_enabled === false) {
                         document.getElementById('captcha_group').style.display = 'none';
+                        document.querySelector('input[name="captcha_code"]').removeAttribute('required');
                     } else {
                         loadCaptcha();
                     }
