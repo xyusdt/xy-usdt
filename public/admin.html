@@ -572,8 +572,13 @@
                 
                 <div class="card">
                     <div class="card-header"><h3>安全鉴权设置</h3></div>
-                    <div class="form-group"><label>面板账号:</label><input type="text" id="set_username"></div>
-                    <div class="form-group"><label>面板密码:</label><input type="password" id="set_password"></div>
+                    <div class="form-group"><label>登陆账号:</label><input type="text" id="set_username"></div>
+                    <div class="form-group"><label>登陆密码:</label>
+                        <div style="position:relative;">
+                            <input type="password" id="set_password" style="padding-right:40px;">
+                            <span onclick="togglePwd()" id="pwd_eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#94a3b8;font-size:1.1rem;user-select:none;">👁</span>
+                        </div>
+                    </div>
                     <button class="btn" onclick="saveSettings()">保存基础配置</button>
                 </div>
 
@@ -1051,6 +1056,12 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             if (!confirm(`确定要删除 ID 为 ${id} 的监控地址吗？`)) return;
             await fetch(`/api/addresses?id=${id}`, { method: 'DELETE' });
             loadAddresses();
+        }
+        function togglePwd() {
+            const inp = document.getElementById('set_password');
+            const eye = document.getElementById('pwd_eye');
+            if (inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+            else { inp.type = 'password'; eye.textContent = '👁'; }
         }
         async function saveSettings() {
             const data = {
