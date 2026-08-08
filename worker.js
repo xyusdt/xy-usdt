@@ -237,7 +237,7 @@ export default {
         }
         .brand-feature-icon {
             width: 40px; height: 40px;
-            border-radius: 50%;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
