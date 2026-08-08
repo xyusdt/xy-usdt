@@ -148,7 +148,7 @@
     <div class="sidebar">
         <div class="sidebar-logo"><div style="width:32px;height:32px;background:linear-gradient(180deg,#3b82f6,#153aeb);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>USDT收款全链矩阵</div>
         <div class="nav-menu">
-            <div class="nav-item active" onclick="switchTab('transactions', '全链交易流水')">
+            <div class="nav-item" onclick="switchTab('transactions', '全链交易流水')">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> 交易流水
             </div>
             <div class="nav-item" onclick="switchTab('webhooks', '发卡网 API 回调')">
@@ -181,7 +181,7 @@
 
         <div class="content-area">
             
-            <div id="transactions" class="tab-content active">
+            <div id="transactions" class="tab-content">
                 <div class="card">
                     <div class="card-header">
                         <h3>全链入账记录 (USDT)</h3>
@@ -797,23 +797,19 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             if (window.innerWidth <= 768) toggleMobileMenu(true);
         }
 
-        // 页面加载时恢复上次选中的 tab
+        // 页面加载时恢复上次选中的 tab（无记录则默认交易流水）
         function restoreTab() {
-            const savedTab = localStorage.getItem('activeTab');
-            const savedTitle = localStorage.getItem('activeTitle');
-            if (savedTab && document.getElementById(savedTab)) {
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-                document.getElementById(savedTab).classList.add('active');
-                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-                // 找到对应的 nav-item 并激活
-                const navItems = document.querySelectorAll('.nav-item');
-                navItems.forEach(item => {
-                    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes("'" + savedTab + "'")) {
-                        item.classList.add('active');
-                    }
-                });
-                if (savedTitle) document.getElementById('current-page-title').innerText = savedTitle;
-            }
+            const savedTab = localStorage.getItem('activeTab') || 'transactions';
+            const savedTitle = localStorage.getItem('activeTitle') || '全链交易流水 (Orders)';
+            const target = document.getElementById(savedTab);
+            if (target) target.classList.add('active');
+            else document.getElementById('transactions').classList.add('active');
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                const oc = item.getAttribute('onclick') || '';
+                if (oc.includes("'" + savedTab + "'")) item.classList.add('active');
+            });
+            document.getElementById('current-page-title').innerText = savedTitle;
         }
 
         async function initData() {
