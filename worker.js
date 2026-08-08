@@ -225,35 +225,37 @@ export default {
         .brand-features {
             display: flex;
             flex-direction: column;
-        }
-        .brand-features > * + * { margin-top: 18px; }
+            gap: 0;
         }
         .brand-feature {
             display: flex;
             align-items: flex-start;
-        }
-        .brand-feature > * + * { margin-left: 14px; }
+            padding: 16px 0;
+            border-left: 2px solid rgba(255,255,255,0.2);
+            padding-left: 20px;
+            position: relative;
         }
         .brand-feature-icon {
-            width: 36px; height: 36px;
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 9px;
+            width: 40px; height: 40px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
         .brand-feature-icon svg {
-            width: 18px; height: 18px;
+            width: 20px; height: 20px;
             fill: none; stroke: white; stroke-width: 2;
             stroke-linecap: round; stroke-linejoin: round;
         }
+        .brand-feature-text {
+            margin-left: 14px;
+        }
         .brand-feature-text h3 {
             color: white;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
         .brand-feature-text p {
             color: rgba(255,255,255,0.6);
@@ -451,8 +453,8 @@ export default {
             <p class="brand-desc">覆盖 20+ 主流公链，边缘节点实时拦截入账，秒级触发回调通知。为您的发卡网、商户系统提供企业级稳定收款能力。</p>
             <div class="brand-features">
                 <div class="brand-feature">
-                    <div class="brand-feature-icon">
-                        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <div class="brand-feature-icon" style="background:rgba(34,197,94,0.25);">
+                        <svg viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
                     </div>
                     <div class="brand-feature-text">
                         <h3>即时扫块引擎</h3>
@@ -460,8 +462,8 @@ export default {
                     </div>
                 </div>
                 <div class="brand-feature">
-                    <div class="brand-feature-icon">
-                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+                    <div class="brand-feature-icon" style="background:rgba(59,130,246,0.25);">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
                     </div>
                     <div class="brand-feature-text">
                         <h3>20+ 公链接入</h3>
@@ -469,7 +471,7 @@ export default {
                     </div>
                 </div>
                 <div class="brand-feature">
-                    <div class="brand-feature-icon">
+                    <div class="brand-feature-icon" style="background:rgba(168,85,247,0.25);">
                         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     </div>
                     <div class="brand-feature-text">
