@@ -135,8 +135,8 @@
         .menu-toggle { display: block; margin-right: 15px; cursor: pointer; color: var(--text-main); }
         .content-area { padding: 15px; }
         .card { padding: 15px; }
-        .card-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-        .card-header > div { display: flex; width: 100%; flex-wrap: wrap; gap: 8px; }
+        .card-header { flex-direction: column; align-items: flex-start; } .card-header > * + * { margin-top: 12px; }
+        .card-header > div { display: flex; width: 100%; flex-wrap: wrap; } .card-header > div > * + * { margin-left: 8px; }
         .card-header > div button { flex: 1; margin: 0 !important; }
         /* 强制表单输入框在移动端垂直排列 */
         #add_webhook_form > div:first-child > div, #add_address_form > div:first-child > div, #add_net_form > div:first-child > div { flex: 0 0 100% !important; padding-right: 0 !important; }
@@ -579,9 +579,9 @@
                             <span onclick="togglePwd()" id="pwd_eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#94a3b8;font-size:1.1rem;user-select:none;">👁</span>
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;margin-bottom:16px;">
                         <span style="font-size:0.95rem;font-weight:500;">登录页验证码:</span>
-                        <label class="switch" style="margin:0;">
+                        <label class="switch" style="margin:0;margin-left:10px;">
                             <input type="checkbox" id="set_captcha_enabled" checked>
                             <span class="slider"></span>
                         </label>
@@ -594,15 +594,15 @@
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
                         当发卡网调用 <code>/api/watch</code> 登记订单后，系统会立即启动后台扫块。此处配置扫块的持续时长和扫描频率。
                     </p>
-                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
-                        <div style="flex: 1; min-width: 200px;">
+                    <div style="display: flex; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div style="flex: 1; min-width: 200px; padding-right: 20px;">
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label>扫块持续时长 (分钟)</label>
                                 <input type="number" id="scan_duration" min="1" max="30" value="5" style="width: 100%;">
                                 <div class="form-hint">订单登记后持续扫块的时长，超时自动停止。建议 3~10 分钟。</div>
                             </div>
                         </div>
-                        <div style="flex: 1; min-width: 200px;">
+                        <div style="flex: 1; min-width: 200px; padding-right: 20px;">
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label>扫块间隔 (秒)</label>
                                 <input type="number" id="scan_interval" min="5" max="300" value="30" style="width: 100%;">

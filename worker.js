@@ -225,12 +225,14 @@ export default {
         .brand-features {
             display: flex;
             flex-direction: column;
-            gap: 18px;
+        }
+        .brand-features > * + * { margin-top: 18px; }
         }
         .brand-feature {
             display: flex;
             align-items: flex-start;
-            gap: 14px;
+        }
+        .brand-feature > * + * { margin-left: 14px; }
         }
         .brand-feature-icon {
             width: 36px; height: 36px;
@@ -497,9 +499,9 @@ export default {
                 </div>
                 <div class="form-group" id="captcha_group" style="display:none;">
                     <label>验证码</label>
-                    <div style="display:flex;gap:10px;align-items:center;">
+                    <div style="display:flex;align-items:center;">
                         <input type="text" name="captcha_code" placeholder="请输入验证码" autocomplete="off" maxlength="4" style="flex:1;text-transform:uppercase;letter-spacing:4px;text-align:center;">
-                        <div id="captcha_img" style="cursor:pointer;height:40px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid hsl(220,13%,91%);" onclick="loadCaptcha()" title="点击刷新验证码"></div>
+                        <div id="captcha_img" style="cursor:pointer;height:40px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid hsl(220,13%,91%);margin-left:10px;" onclick="loadCaptcha()" title="点击刷新验证码"></div>
                     </div>
                     <input type="hidden" name="captcha_id" id="captcha_id">
                 </div>
