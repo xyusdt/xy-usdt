@@ -231,7 +231,6 @@ export default {
             display: flex;
             align-items: flex-start;
             padding: 16px 0;
-            padding-left: 20px;
             position: relative;
         }
         .brand-feature-icon {
