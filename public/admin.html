@@ -792,7 +792,28 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
             document.getElementById('current-page-title').innerText = title;
+            localStorage.setItem('activeTab', tabId);
+            localStorage.setItem('activeTitle', title);
             if (window.innerWidth <= 768) toggleMobileMenu(true);
+        }
+
+        // 页面加载时恢复上次选中的 tab
+        function restoreTab() {
+            const savedTab = localStorage.getItem('activeTab');
+            const savedTitle = localStorage.getItem('activeTitle');
+            if (savedTab && document.getElementById(savedTab)) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.getElementById(savedTab).classList.add('active');
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                // 找到对应的 nav-item 并激活
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes("'" + savedTab + "'")) {
+                        item.classList.add('active');
+                    }
+                });
+                if (savedTitle) document.getElementById('current-page-title').innerText = savedTitle;
+            }
         }
 
         async function initData() {
@@ -1233,6 +1254,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             } catch (e) { console.error(e); alert('批量处理异常'); }
         }
 
+        restoreTab(); // 恢复上次选中的 tab
         initData();
     </script>
 </body>
