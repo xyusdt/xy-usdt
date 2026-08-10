@@ -950,6 +950,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                             </td>
                             <td>
                                 <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="editWebhookData(${item.id})">编辑</button>
+                                <button class="btn" style="background:#0ea5e9; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="copySingleWebhook(${item.id})">复制</button>
                                 <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteWebhook(${item.id})">删除</button>
                             </td>
                         </tr>
@@ -1040,6 +1041,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                             <td>${item.remark || '-'}</td>
                             <td>
                                 <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="editAddressData(${item.id})">编辑</button>
+                                <button class="btn" style="background:#0ea5e9; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="copySingleAddress(${item.id})">复制</button>
                                 <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteAddress(${item.id})">删除</button>
                             </td>
                         </tr>
@@ -1186,6 +1188,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                         <td>${conf.decimals}</td>
                         <td>
                             <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="modifyNetworkRow('${netKey}')">编辑</button>
+                            <button class="btn" style="background:#0ea5e9; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="copySingleNetwork('${netKey}')">复制</button>
                             <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeNetworkRow('${netKey}')">删除</button>
                         </td>
                     </tr>
@@ -1452,6 +1455,41 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             );
             downloadTXT(lines.join('\n'), `networks_${new Date().toISOString().slice(0,10)}.txt`);
             alert(`✅ 已导出 ${lines.length} 个网络节点`);
+        }
+
+        // ================= 单条复制功能 =================
+        function copyTextToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => alert('✅ 已复制到剪贴板'));
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+                alert('✅ 已复制到剪贴板');
+            }
+        }
+
+        function copySingleWebhook(id) {
+            const item = globalWebhooks.find(w => w.id === id);
+            if (!item) return;
+            const line = WEBHOOK_FIELDS.map(f => item[f] || '').join('\t');
+            copyTextToClipboard(line);
+        }
+
+        function copySingleAddress(id) {
+            const item = globalAddresses.find(a => a.id === id);
+            if (!item) return;
+            const boundNet = globalAddressBindings[item.id.toString()] || 'auto';
+            const line = [boundNet, item.name, item.address, item.icon || '', item.remark || ''].join('\t');
+            copyTextToClipboard(line);
+        }
+
+        function copySingleNetwork(key) {
+            const conf = networkCachePool[key];
+            if (!conf) return;
+            const line = [key, ...NETWORK_FIELDS.map(f => conf[f] != null ? String(conf[f]) : '')].join('\t');
+            copyTextToClipboard(line);
         }
     </script>
     <!-- 通用导入弹窗 -->
