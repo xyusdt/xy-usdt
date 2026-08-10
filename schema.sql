@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS webhooks (
     url TEXT NOT NULL,
     secret TEXT NOT NULL,
     binds TEXT DEFAULT '*',
+    callback_type TEXT DEFAULT 'default',
     icon TEXT,
     remark TEXT,
     enabled INTEGER DEFAULT 1,
@@ -67,9 +68,9 @@ CREATE TABLE IF NOT EXISTS sys_state (
 );
 
 CREATE TABLE IF NOT EXISTS active_watches (
-    address TEXT PRIMARY KEY,  
-    network TEXT NOT NULL,   
-    expected_amount TEXT NOT NULL, 
-    order_id TEXT NOT NULL, 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
+    order_id TEXT PRIMARY KEY,
+    address TEXT NOT NULL,
+    network TEXT NOT NULL,
+    expected_amount TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
