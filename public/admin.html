@@ -60,6 +60,13 @@
             display: inline-block; vertical-align: middle; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; 
         }
         .net-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold; color: white; display: inline-block; text-align: center; min-width: 45px; background: #94a3b8; }
+        /* 列表紧凑字体 */
+        .compact-table td { font-size: 0.8rem; padding: 10px 12px; }
+        .compact-table .amount-cell { font-size: 1rem !important; }
+        /* 图标按钮 */
+        .icon-btn { background:none; border:none; cursor:pointer; padding:4px; border-radius:4px; transition:0.15s; display:inline-flex; align-items:center; vertical-align:middle; }
+        .icon-btn:hover { background:rgba(0,0,0,0.06); transform:scale(1.15); }
+        .icon-btn svg { width:16px; height:16px; }
         .net-TRON { background: linear-gradient(135deg, #ef4444, #dc2626); }
         .net-BSC { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .net-ETH { background: linear-gradient(135deg, #6366f1, #4f46e5); }
@@ -210,7 +217,7 @@
                         </div>
                     </div>
                     <div class="table-container">
-                        <table id="txTable">
+                        <table id="txTable" class="compact-table">
                             <tr>
                                 <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllTx" onchange="toggleSelectAllTx(this.checked)"></th>
                                 <th>处理网络</th><th>交易哈希</th><th>付款方 (From)</th><th>收款方 (To)</th><th>金额 (USDT)</th><th>系统时间</th><th>状态 (Status)</th><th>操作</th>
@@ -258,7 +265,7 @@
                     </div>
 
                     <div class="table-container">
-                        <table id="webhookTable">
+                        <table id="webhookTable" class="compact-table">
                             <thead>
                                 <tr>
                                     <th>节点ID</th>
@@ -328,7 +335,7 @@
                     </div>
                 </div>
                 <div class="table-container">
-                    <table id="addressTable">
+                    <table id="addressTable" class="compact-table">
                         <thead>
                             <tr>
                                 <th>序数ID</th>
@@ -539,7 +546,7 @@
                         </div>
                     </div>
                     <div class="table-container">
-                        <table>
+                        <table class="compact-table">
                             <thead><tr><th>标识</th><th>内核</th><th>RPC</th><th>合约</th><th>精度</th><th>操作</th></tr></thead>
                             <tbody id="network_render_body"></tbody>
                         </table>
@@ -901,7 +908,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                     <td><strong style="color:#ff0000; font-size:1.15em;">+ ${row.amount}</strong></td>
                     <td><span style="color:var(--text-muted); font-size:0.85em;">${new Date(row.created_at).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</span></td>
                     <td><span class="status-badge ${currentStatus.class}">${currentStatus.text}</span></td>
-                    <td><button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem; background: #ef4444;" onclick="deleteSingleOrder('${row.tx_hash}', '${netName}')">删除</button></td>
+                    <td><button class="icon-btn" style="color:#ef4444;" onclick="deleteSingleOrder('${row.tx_hash}', '${netName}')" title="删除"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
                 `;
             });
 
@@ -949,9 +956,9 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                                 </label>
                             </td>
                             <td>
-                                <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="editWebhookData(${item.id})">编辑</button>
-                                <button class="btn" style="background:#0ea5e9; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="copySingleWebhook(${item.id})">复制</button>
-                                <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteWebhook(${item.id})">删除</button>
+                                <button class="icon-btn" style="color:#f59e0b;" onclick="editWebhookData(${item.id})" title="编辑"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                <button class="icon-btn" style="color:#0ea5e9;" onclick="copySingleWebhook(${item.id})" title="复制"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></button>
+                                <button class="icon-btn" style="color:#ef4444;" onclick="deleteWebhook(${item.id})" title="删除"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                             </td>
                         </tr>
                     `;
@@ -1040,9 +1047,9 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                             <td style="font-size:0.85em; color:var(--text-muted);">${timeStr}</td>
                             <td>${item.remark || '-'}</td>
                             <td>
-                                <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="editAddressData(${item.id})">编辑</button>
-                                <button class="btn" style="background:#0ea5e9; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="copySingleAddress(${item.id})">复制</button>
-                                <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteAddress(${item.id})">删除</button>
+                                <button class="icon-btn" style="color:#f59e0b;" onclick="editAddressData(${item.id})" title="编辑"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                <button class="icon-btn" style="color:#0ea5e9;" onclick="copySingleAddress(${item.id})" title="复制"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></button>
+                                <button class="icon-btn" style="color:#ef4444;" onclick="deleteAddress(${item.id})" title="删除"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                             </td>
                         </tr>
                     `;
@@ -1187,9 +1194,9 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                         <td style="font-family:monospace; font-size:12px; color:#0284c7;">${conf.usdt || '-'}</td>
                         <td>${conf.decimals}</td>
                         <td>
-                            <button class="btn" style="background:#f59e0b; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="modifyNetworkRow('${netKey}')">编辑</button>
-                            <button class="btn" style="background:#0ea5e9; padding:4px 8px; font-size:0.8rem; margin-right:5px;" onclick="copySingleNetwork('${netKey}')">复制</button>
-                            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeNetworkRow('${netKey}')">删除</button>
+                            <button class="icon-btn" style="color:#f59e0b;" onclick="modifyNetworkRow('${netKey}')" title="编辑"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            <button class="icon-btn" style="color:#0ea5e9;" onclick="copySingleNetwork('${netKey}')" title="复制"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></button>
+                            <button class="icon-btn" style="color:#ef4444;" onclick="removeNetworkRow('${netKey}')" title="删除"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                         </td>
                     </tr>
                 `;
