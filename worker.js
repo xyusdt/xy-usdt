@@ -1,5 +1,59 @@
 // worker.js
 import dashboardHTML from "./public/admin.html";
+
+// MD5 纯 JS 实现（Cloudflare Workers WebCrypto 不支持 MD5）
+function md5(string) {
+    function md5cycle(x, k) {
+        let a = x[0], b = x[1], c = x[2], d = x[3];
+        a = ff(a, b, c, d, k[0], 7, -680876936); d = ff(d, a, b, c, k[1], 12, -389564586); c = ff(c, d, a, b, k[2], 17, 606105819); b = ff(b, c, d, a, k[3], 22, -1044525330);
+        a = ff(a, b, c, d, k[4], 7, -176418897); d = ff(d, a, b, c, k[5], 12, 1200080426); c = ff(c, d, a, b, k[6], 17, -1473231341); b = ff(b, c, d, a, k[7], 22, -45705983);
+        a = ff(a, b, c, d, k[8], 7, 1770035416); d = ff(d, a, b, c, k[9], 12, -1958414417); c = ff(c, d, a, b, k[10], 17, -42063); b = ff(b, c, d, a, k[11], 22, -1990404162);
+        a = ff(a, b, c, d, k[12], 7, 1804603682); d = ff(d, a, b, c, k[13], 12, -40341101); c = ff(c, d, a, b, k[14], 17, -1502002290); b = ff(b, c, d, a, k[15], 22, 1236535329);
+        a = gg(a, b, c, d, k[1], 5, -165796510); d = gg(d, a, b, c, k[6], 9, -1069501632); c = gg(c, d, a, b, k[11], 14, 643717713); b = gg(b, c, d, a, k[0], 20, -373897302);
+        a = gg(a, b, c, d, k[5], 5, -701558691); d = gg(d, a, b, c, k[10], 9, 38016083); c = gg(c, d, a, b, k[15], 14, -660478335); b = gg(b, c, d, a, k[4], 20, -405537848);
+        a = gg(a, b, c, d, k[9], 5, 568446438); d = gg(d, a, b, c, k[14], 9, -1019803690); c = gg(c, d, a, b, k[3], 14, -187363961); b = gg(b, c, d, a, k[8], 20, 1163531501);
+        a = gg(a, b, c, d, k[13], 5, -1444681467); d = gg(d, a, b, c, k[2], 9, -51403784); c = gg(c, d, a, b, k[7], 14, 1735328473); b = gg(b, c, d, a, k[12], 20, -1926607734);
+        a = hh(a, b, c, d, k[5], 4, -378558); d = hh(d, a, b, c, k[8], 11, -2022574463); c = hh(c, d, a, b, k[11], 16, 1839030562); b = hh(b, c, d, a, k[14], 23, -35309556);
+        a = hh(a, b, c, d, k[1], 4, -1530992060); d = hh(d, a, b, c, k[4], 11, 1272893353); c = hh(c, d, a, b, k[7], 16, -155497632); b = hh(b, c, d, a, k[10], 23, -1094730640);
+        a = hh(a, b, c, d, k[13], 4, 681279174); d = hh(d, a, b, c, k[0], 11, -358537222); c = hh(c, d, a, b, k[3], 16, -722521979); b = hh(b, c, d, a, k[6], 23, 76029189);
+        a = hh(a, b, c, d, k[9], 4, -640364487); d = hh(d, a, b, c, k[12], 11, -421815835); c = hh(c, d, a, b, k[15], 16, 530742520); b = hh(b, c, d, a, k[2], 23, -995338651);
+        a = ii(a, b, c, d, k[0], 6, -198630844); d = ii(d, a, b, c, k[7], 10, 1126891415); c = ii(c, d, a, b, k[14], 15, -1416354905); b = ii(b, c, d, a, k[5], 21, -57434055);
+        a = ii(a, b, c, d, k[12], 6, 1700485571); d = ii(d, a, b, c, k[3], 10, -1894986606); c = ii(c, d, a, b, k[10], 15, -1051523); b = ii(b, c, d, a, k[1], 21, -2054922799);
+        a = ii(a, b, c, d, k[8], 6, 1873313359); d = ii(d, a, b, c, k[15], 10, -30611744); c = ii(c, d, a, b, k[6], 15, -1560198380); b = ii(b, c, d, a, k[13], 21, 1309151649);
+        a = ii(a, b, c, d, k[4], 6, -145523070); d = ii(d, a, b, c, k[11], 10, -1120210379); c = ii(c, d, a, b, k[2], 15, 718787259); b = ii(b, c, d, a, k[9], 21, -343485551);
+        x[0] = add32(a, x[0]); x[1] = add32(b, x[1]); x[2] = add32(c, x[2]); x[3] = add32(d, x[3]);
+    }
+    function cmn(q, a, b, x, s, t) { a = add32(add32(a, q), add32(x, t)); return add32((a << s) | (a >>> (32 - s)), b); }
+    function ff(a, b, c, d, x, s, t) { return cmn((b & c) | ((~b) & d), a, b, x, s, t); }
+    function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
+    function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+    function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
+    function md5blk(s) {
+        const md5blks = [];
+        for (let i = 0; i < 64; i += 4) md5blks[i >> 2] = s.charCodeAt(i) + (s.charCodeAt(i + 1) << 8) + (s.charCodeAt(i + 2) << 16) + (s.charCodeAt(i + 3) << 24);
+        return md5blks;
+    }
+    function add32(a, b) { return (a + b) & 0xFFFFFFFF; }
+    function rhex(n) {
+        const hc = '0123456789abcdef';
+        let s = '';
+        for (let j = 0; j < 4; j++) s += hc.charAt((n >> (j * 8 + 4)) & 0x0F) + hc.charAt((n >> (j * 8)) & 0x0F);
+        return s;
+    }
+    let n = string.length;
+    let state = [1732584193, -271733879, -1732584194, 271733878];
+    let i;
+    for (i = 64; i <= n; i += 64) md5cycle(state, md5blk(string.substring(i - 64, i)));
+    string = string.substring(i - 64);
+    const tail = new Array(16).fill(0);
+    for (i = 0; i < string.length; i++) tail[i >> 2] |= string.charCodeAt(i) << ((i % 4) << 3);
+    tail[i >> 2] |= 0x80 << ((i % 4) << 3);
+    if (i > 55) { md5cycle(state, tail); tail.fill(0); }
+    tail[14] = n * 8;
+    md5cycle(state, tail);
+    return rhex(state[0]) + rhex(state[1]) + rhex(state[2]) + rhex(state[3]);
+}
+
 // 【新增】KV与内存双重缓存架构逻辑
 let cachedNetworks = null;
 let lastNetworkCacheTime = 0;
@@ -31,7 +85,7 @@ async function getScanConfig(env) {
         ]);
         cachedScanConfig = {
             duration: duration || "5",
-            interval: interval || "30",
+            interval: interval || "15",
             mode: mode || "fixed"
         };
         lastScanConfigCacheTime = now;
@@ -55,13 +109,12 @@ export default {
                 from_address TEXT NOT NULL, to_address TEXT, status TEXT DEFAULT 'pending',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (tx_hash, network)
             );`).run();
-            // 自动创建 webhooks 表
+            // 自动创建 webhooks 表 (支持 callback_type 区分默认/BEpusdt 回调格式)
             await env.db.prepare(`CREATE TABLE IF NOT EXISTS webhooks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, url TEXT NOT NULL,
-                secret TEXT NOT NULL, binds TEXT DEFAULT '*', icon TEXT, remark TEXT,
-                enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                secret TEXT NOT NULL, binds TEXT DEFAULT '*', callback_type TEXT DEFAULT 'default',
+                icon TEXT, remark TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );`).run();
-                
             // 自动创建 addresses 表 (已解除 UNIQUE 限制支持同地址多节点)
             await env.db.prepare(`CREATE TABLE IF NOT EXISTS addresses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, address TEXT NOT NULL,
@@ -80,6 +133,10 @@ export default {
             await env.kv.put("admin_password", "123456");
             await env.kv.put("system_init_v1", "true");
         }
+        // 【迁移】给旧表补上 callback_type 列（无论是否首次初始化都执行，已存在则静默忽略）
+        try { await env.db.prepare('ALTER TABLE webhooks ADD COLUMN callback_type TEXT DEFAULT \'default\'').run(); } catch(e) {}
+        // 【迁移】将旧的 dujiao-next 值统一改为 bepusdt
+        try { await env.db.prepare("UPDATE webhooks SET callback_type = 'bepusdt' WHERE callback_type = 'dujiao-next'").run(); } catch(e) {}
 
         // 验证码生成 API
         if (url.pathname === "/api/captcha") {
@@ -627,7 +684,7 @@ export default {
             }
             if (request.method === "POST") {
                 const data = await request.json();
-                await env.db.prepare("INSERT INTO webhooks (name, url, secret, binds, icon, remark) VALUES (?, ?, ?, ?, ?, ?)").bind(data.name, data.url, data.secret, data.binds, data.icon, data.remark).run();
+                await env.db.prepare("INSERT INTO webhooks (name, url, secret, binds, callback_type, icon, remark) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(data.name, data.url, data.secret, data.binds, data.callback_type || 'default', data.icon, data.remark).run();
                 return new Response(JSON.stringify({ success: true }));
             }
             if (request.method === "DELETE") {
@@ -644,7 +701,7 @@ export default {
                     await env.db.prepare("UPDATE webhooks SET enabled = ? WHERE id = ?").bind(status === "1" ? 1 : 0, id).run();
                 } else {
                     const data = await request.json();
-                    await env.db.prepare("UPDATE webhooks SET name=?, url=?, secret=?, binds=?, icon=?, remark=? WHERE id=?").bind(data.name, data.url, data.secret, data.binds, data.icon, data.remark, data.id).run();
+                    await env.db.prepare("UPDATE webhooks SET name=?, url=?, secret=?, binds=?, callback_type=?, icon=?, remark=? WHERE id=?").bind(data.name, data.url, data.secret, data.binds, data.callback_type || 'default', data.icon, data.remark, data.id).run();
                 }
                 return new Response(JSON.stringify({ success: true }));
             }
@@ -704,7 +761,7 @@ export default {
             const sysConfig = await getScanConfig(env);
             
             const duration = parseInt(scan_duration) || parseInt(sysConfig.duration) || 5;
-            const interval = parseInt(scan_interval) || parseInt(sysConfig.interval) || 30;
+            const interval = parseInt(scan_interval) || parseInt(sysConfig.interval) || 15;
             const mode = scan_mode || sysConfig.mode || "fixed";
             
             // 使用 ctx.waitUntil 在后台持续扫块，不阻塞响应
@@ -736,6 +793,181 @@ export default {
         if (url.pathname === "/api/sync" && request.method === "POST") {
             await this.syncAllChainsData(env);
             return new Response(JSON.stringify({ success: true }));
+        }
+
+        // ====== BEpusdt 兼容下单接口（供独角数卡等发卡网调用） ======
+        if (url.pathname === "/api/v1/order/create-order" && request.method === "POST") {
+            try {
+                const body = await request.json();
+                const { order_id, amount, notify_url, redirect_url, fiat, name, signature } = body;
+
+                if (!order_id || !amount || !notify_url || !signature) {
+                    return new Response(JSON.stringify({ status_code: 400, message: "Missing required params: order_id, amount, notify_url, signature" }), { headers: { "Content-Type": "application/json" }, status: 400 });
+                }
+
+                // 从 webhooks 表中查找匹配 notify_url 且类型为 bepusdt 的路由
+                const webhook = await env.db.prepare("SELECT * FROM webhooks WHERE url = ? AND callback_type = 'bepusdt' AND enabled = 1").bind(notify_url).first();
+                if (!webhook) {
+                    return new Response(JSON.stringify({ status_code: 401, message: "No matching BEpusdt webhook found for this notify_url" }), { headers: { "Content-Type": "application/json" }, status: 401 });
+                }
+
+                // 验证签名（BEpusdt 签名规则：参数按 key 排序拼接 + authToken，MD5）
+                const signParams = {};
+                for (const [k, v] of Object.entries(body)) {
+                    if (k === "signature" || k === "sign" || k === "sign_type") continue;
+                    if (v === "" || v === null || v === undefined) continue;
+                    signParams[k] = v;
+                }
+                const sortedKeys = Object.keys(signParams).sort();
+                const signStr = sortedKeys.map(k => `${k}=${signParams[k]}`).join("&") + webhook.secret;
+                const msgBuffer = new TextEncoder().encode(signStr);
+                const hashBuffer = await crypto.subtle.digest('MD5', msgBuffer);
+                const expectedSign = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                if (expectedSign !== signature.toLowerCase()) {
+                    return new Response(JSON.stringify({ status_code: 401, message: "Signature verification failed" }), { headers: { "Content-Type": "application/json" }, status: 401 });
+                }
+
+                // 获取绑定的收款地址
+                const binds = webhook.binds === '*' ? null : webhook.binds.split(',')[0].split('@@')[0].trim();
+                let address = binds;
+                if (!address) {
+                    const addr = await env.db.prepare("SELECT address FROM addresses LIMIT 1").first();
+                    address = addr ? addr.address : null;
+                }
+                if (!address) {
+                    return new Response(JSON.stringify({ status_code: 500, message: "No收款地址 configured" }), { headers: { "Content-Type": "application/json" }, status: 500 });
+                }
+
+                // 生成交易号
+                const tradeId = `XY${Date.now()}${Math.random().toString(36).substring(2, 8)}`;
+
+                // 计算 USDT 金额（法币金额按 1:1 换算，可扩展汇率）
+                const usdtAmount = parseFloat(amount).toFixed(2);
+
+                // 登记监控
+                await env.db.prepare(
+                    "INSERT INTO active_watches (order_id, address, network, expected_amount) VALUES (?, ?, ?, ?) ON CONFLICT(order_id) DO UPDATE SET created_at = CURRENT_TIMESTAMP"
+                ).bind(order_id, address, "TRON", usdtAmount).run();
+
+                // 触发扫块
+                const sysConfig = await getScanConfig(env);
+                const duration = parseInt(sysConfig.duration) || 5;
+                const interval = parseInt(sysConfig.interval) || 15;
+                const mode = sysConfig.mode || "fixed";
+                // noinspection ES6MissingAwait
+                this.onDemandScan(env, duration, interval, mode);
+
+                // 生成支付页面 URL
+                const payUrl = `${url.origin}/pay?trade_id=${tradeId}&order_id=${encodeURIComponent(order_id)}&amount=${usdtAmount}&address=${encodeURIComponent(address)}&notify_url=${encodeURIComponent(notify_url)}&redirect_url=${encodeURIComponent(redirect_url || '')}`;
+
+                return new Response(JSON.stringify({
+                    status_code: 200,
+                    message: "success",
+                    data: {
+                        trade_id: tradeId,
+                        order_id: order_id,
+                        amount: amount.toString(),
+                        expiration_time: 1800,
+                        payment_url: payUrl
+                    }
+                }), { headers: { "Content-Type": "application/json" } });
+
+            } catch (e) {
+                return new Response(JSON.stringify({ status_code: 500, message: e.message }), { headers: { "Content-Type": "application/json" }, status: 500 });
+            }
+        }
+
+        // ====== 支付展示页面（USDT 地址 + 二维码） ======
+        if (url.pathname === "/pay" && request.method === "GET") {
+            const tradeId = url.searchParams.get("trade_id") || "";
+            const orderId = url.searchParams.get("order_id") || "";
+            const amount = url.searchParams.get("amount") || "";
+            const address = url.searchParams.get("address") || "";
+            const redirectUrl = url.searchParams.get("redirect_url") || "";
+
+            if (!address || !amount) {
+                return new Response("Missing params", { status: 400 });
+            }
+
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(address)}`;
+
+            const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDT Payment</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+.card { background:#fff; border-radius:16px; padding:40px 30px; max-width:440px; width:100%; text-align:center; box-shadow:0 25px 50px rgba(0,0,0,0.25); }
+.title { font-size:1.4rem; font-weight:700; color:#0f172a; margin-bottom:8px; }
+.subtitle { font-size:0.9rem; color:#64748b; margin-bottom:24px; }
+.qr-box { display:inline-block; padding:12px; background:#fff; border:2px solid #e2e8f0; border-radius:12px; margin-bottom:20px; }
+.qr-box img { display:block; width:240px; height:240px; }
+.amount-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:16px; margin-bottom:20px; }
+.amount-label { font-size:0.85rem; color:#16a34a; margin-bottom:4px; }
+.amount-value { font-size:2rem; font-weight:700; color:#15803d; }
+.amount-unit { font-size:1rem; font-weight:400; color:#16a34a; margin-left:4px; }
+.addr-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:20px; word-break:break-all; }
+.addr-label { font-size:0.8rem; color:#94a3b8; margin-bottom:6px; }
+.addr-value { font-family:monospace; font-size:0.85rem; color:#334155; line-height:1.5; }
+.copy-btn { background:#3b82f6; color:#fff; border:none; padding:10px 24px; border-radius:8px; font-size:0.9rem; cursor:pointer; margin-bottom:12px; }
+.copy-btn:hover { background:#2563eb; }
+.info { font-size:0.8rem; color:#94a3b8; line-height:1.6; }
+.timer { color:#ef4444; font-weight:600; }
+.order-id { font-size:0.75rem; color:#cbd5e1; margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="title">💳 USDT Payment</div>
+  <div class="subtitle">Please transfer the exact amount to the address below</div>
+  <div class="qr-box"><img src="${qrUrl}" alt="QR Code"></div>
+  <div class="amount-box">
+    <div class="amount-label">Amount to pay</div>
+    <div class="amount-value">${amount}<span class="amount-unit">USDT</span></div>
+  </div>
+  <div class="addr-box">
+    <div class="addr-label">Wallet Address (TRC20)</div>
+    <div class="addr-value" id="addr">${address}</div>
+  </div>
+  <button class="copy-btn" onclick="navigator.clipboard.writeText('${address}').then(()=>this.textContent='Copied!')">📋 Copy Address</button>
+  <div class="info">
+    Network: <strong>TRON (TRC20)</strong><br>
+    Payment will be confirmed automatically after blockchain detection.
+  </div>
+  <div class="order-id">Order: ${orderId} | Trade: ${tradeId}</div>
+  ${redirectUrl ? `<div id="countdown" class="info" style="margin-top:16px;"></div>` : ''}
+</div>
+${redirectUrl ? `
+<script>
+function checkPaid() {
+  fetch('/api/order-status?trade_id=${tradeId}')
+    .then(r => r.json())
+    .then(d => { if (d.paid) { window.location.href = '${redirectUrl}'; } })
+    .catch(() => {});
+}
+setInterval(checkPaid, 5000);
+</script>` : ''}
+</body>
+</html>`;
+
+            return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+        }
+
+        // ====== 订单状态查询（支付页面轮询用） ======
+        if (url.pathname === "/api/order-status" && request.method === "GET") {
+            const tradeId = url.searchParams.get("trade_id") || "";
+            const orderId = url.searchParams.get("order_id") || "";
+            // 检查该 order_id 是否还有活跃监控（被清除说明已到账）
+            let paid = false;
+            if (orderId) {
+                const watch = await env.db.prepare("SELECT order_id FROM active_watches WHERE order_id = ?").bind(orderId).first();
+                paid = !watch;
+            }
+            return new Response(JSON.stringify({ paid }), { headers: { "Content-Type": "application/json" } });
         }
 
         // 如果上方的 API 路由均未匹配，则自动去资源库中寻找对应的静态文件（如 /files/xxx.webp）
@@ -955,8 +1187,12 @@ export default {
             .bind(tx.txHash, tx.network, tx.amount, tx.fromAddr, tx.toAddr).run();
 
         if (dbRes.meta.changes > 0 && webhooks.length > 0) {
+            // 先查询关联的 order_id（用于 BEpusdt 回调），再清理监控池
+            const watchRecord = await env.db.prepare("SELECT order_id FROM active_watches WHERE address = ? AND expected_amount = ?").bind(tx.toAddr, tx.amount).first();
+
             // 清理任务：通过 order_id 或 address+amount
             await env.db.prepare("DELETE FROM active_watches WHERE address = ? AND expected_amount = ?").bind(tx.toAddr, tx.amount).run();
+
             for (const wh of webhooks) {
                 if (!wh.enabled || !wh.url || !wh.secret) continue;
                 const bindsRaw = wh.binds.split(',').map(s => s.trim().toLowerCase());
@@ -971,25 +1207,58 @@ export default {
                 });
                 
                 if (isMatch) {
-                    // 安全增强：签名中加入 network 防止重放攻击
-                    const signText = `${tx.network}${tx.txHash}${tx.amount}${wh.secret}`;
-                    const msgBuffer = new TextEncoder().encode(signText);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                    const signHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    const callbackType = wh.callback_type || 'default';
 
-                    fetch(wh.url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            network: tx.network,
-                            tx_hash: tx.txHash,
-                            amount: tx.amount,
-                            from_address: tx.fromAddr,
-                            to_address: tx.toAddr,
-                            sign: signHex,
-                            timestamp: tx.timestamp
-                        })
-                    }).catch(e => console.error(`[${tx.network}] 分发失败:`, e));
+                    if (callbackType === 'bepusdt') {
+                        // ===== BEpusdt 兼容回调格式（供独角数卡等发卡网使用） =====
+                        const orderId = watchRecord ? watchRecord.order_id : `XY${Date.now()}`;
+                        const tradeId = `XYT${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
+                        const amountNum = parseFloat(tx.amount) || 0;
+
+                        // BEpusdt 签名：参数按 key 排序，拼接 + authToken，MD5
+                        const signParams = {
+                            trade_id: tradeId,
+                            order_id: orderId,
+                            amount: amountNum,
+                            actual_amount: amountNum,
+                            token: tx.toAddr,
+                            block_transaction_id: tx.txHash,
+                            status: 2
+                        };
+                        const sortedKeys = Object.keys(signParams).sort();
+                        const signStr = sortedKeys.map(k => `${k}=${signParams[k]}`).join('&') + wh.secret;
+                        const signHex = md5(signStr);
+
+                        fetch(wh.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ...signParams,
+                                signature: signHex
+                            })
+                        }).catch(e => console.error(`[${tx.network}] BEpusdt 回调分发失败:`, e));
+
+                    } else {
+                        // ===== 默认回调格式（原逻辑） =====
+                        const signText = `${tx.network}${tx.txHash}${tx.amount}${wh.secret}`;
+                        const msgBuffer = new TextEncoder().encode(signText);
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                        const signHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                        fetch(wh.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                network: tx.network,
+                                tx_hash: tx.txHash,
+                                amount: tx.amount,
+                                from_address: tx.fromAddr,
+                                to_address: tx.toAddr,
+                                sign: signHex,
+                                timestamp: tx.timestamp
+                            })
+                        }).catch(e => console.error(`[${tx.network}] 分发失败:`, e));
+                    }
                 }
             }
         }
