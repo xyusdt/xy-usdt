@@ -122,6 +122,25 @@
         .chain-icons > * + * { margin-left: 8px; }
         .chain-icon-badge > * + * { margin-left: 5px; }
         .doc-section h4 > * + * { margin-left: 8px; }
+		/* ================= 导入弹窗样式 ================= */
+        .import-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; }
+        .import-overlay.show { display:flex; }
+        .import-modal { background:white; border-radius:16px; width:90%; max-width:680px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation:modalIn 0.2s ease; }
+        @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+        .import-modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #e5e7eb; }
+        .import-modal-header h3 { margin:0; font-size:1.1rem; }
+        .import-modal-close { width:32px; height:32px; border:none; background:#f3f4f6; border-radius:8px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; color:#6b7280; transition:0.15s; }
+        .import-modal-close:hover { background:#e5e7eb; color:#1f2937; }
+        .import-modal-body { padding:20px 24px; overflow-y:auto; flex:1; }
+        .import-modal-body .hint { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; font-size:0.82rem; color:#1e40af; margin-bottom:16px; line-height:1.7; }
+        .import-modal-body .hint strong { color:#1d4ed8; }
+        .import-modal-body textarea { width:100%; min-height:180px; padding:12px; border:1px solid #d1d5db; border-radius:8px; font-family:monospace; font-size:0.85rem; line-height:1.6; resize:vertical; box-sizing:border-box; outline:none; transition:0.2s; }
+        .import-modal-body textarea:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+        .import-modal-body .or-line { display:flex; align-items:center; gap:12px; margin:14px 0; color:#9ca3af; font-size:0.82rem; }
+        .import-modal-body .or-line::before, .import-modal-body .or-line::after { content:''; flex:1; height:1px; background:#e5e7eb; }
+        .import-modal-body .file-upload-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:8px; cursor:pointer; font-size:0.9rem; color:#475569; transition:0.2s; }
+        .import-modal-body .file-upload-btn:hover { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
+        .import-modal-footer { padding:16px 24px; border-top:1px solid #e5e7eb; display:flex; justify-content:flex-end; gap:10px; }
 		/* ================= 移动端适配样式 ================= */
     .menu-toggle { display: none; }
     @media (max-width: 768px) {
@@ -218,8 +237,7 @@
                         <h3>发卡网异步回调路由列表</h3>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn" style="background:#6366f1;" onclick="exportWebhooks()">📥 导出</button>
-                            <button class="btn" style="background:#8b5cf6;" onclick="document.getElementById('import_webhook_file').click()">📤 导入</button>
-                            <input type="file" id="import_webhook_file" accept=".txt" style="display:none" onchange="importWebhooks(this)">
+                            <button class="btn" style="background:#8b5cf6;" onclick="showImportModal('webhooks')">📤 导入</button>
                             <button class="btn btn-success" onclick="resetFormState('webhook'); document.getElementById('add_webhook_form').style.display='block'">+ 增加回调节点</button>
                         </div>
                     </div>
@@ -286,8 +304,7 @@
                     <h3>全网收款地址列表</h3>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button class="btn" style="background:#6366f1;" onclick="exportAddresses()">📥 导出</button>
-                        <button class="btn" style="background:#8b5cf6;" onclick="document.getElementById('import_address_file').click()">📤 导入</button>
-                        <input type="file" id="import_address_file" accept=".txt" style="display:none" onchange="importAddresses(this)">
+                        <button class="btn" style="background:#8b5cf6;" onclick="showImportModal('addresses')">📤 导入</button>
                         <button class="btn btn-success" onclick="resetFormState('address'); document.getElementById('add_address_form').style.display='block'">+ 增加地址</button>
                     </div>
                 </div>
@@ -503,8 +520,7 @@
                         <h3>动态网络分类池</h3>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn" style="background:#6366f1;" onclick="exportNetworks()">📥 导出</button>
-                            <button class="btn" style="background:#8b5cf6;" onclick="document.getElementById('import_network_file').click()">📤 导入</button>
-                            <input type="file" id="import_network_file" accept=".txt" style="display:none" onchange="importNetworks(this)">
+                            <button class="btn" style="background:#8b5cf6;" onclick="showImportModal('networks')">📤 导入</button>
                             <button class="btn btn-success" onclick="showAddNetworkForm()">+ 新增网络</button>
                         </div>
                     </div>
@@ -1277,19 +1293,131 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             URL.revokeObjectURL(url);
         }
 
-        function readFileAsText(fileInput) {
-            return new Promise((resolve, reject) => {
-                const file = fileInput.files[0];
-                if (!file) return reject(new Error('未选择文件'));
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('文件读取失败'));
-                reader.readAsText(file);
-            });
+        // ================= 导入弹窗控制 =================
+        let currentImportType = null;
+
+        const IMPORT_CONFIG = {
+            webhooks: {
+                title: '导入回调路由',
+                hint: '<strong>格式：</strong>每行一条，字段间用 <strong>Tab 制表符</strong> 分隔，顺序为：<br><code>名称</code> → <code>URL</code> → <code>密钥</code> → <code>绑定号池</code> → <code>图标</code> → <code>备注</code><br>空字段保留制表符占位，例如：<code>名称\tURL\t密钥\t*\t\t备注</code>',
+                fields: ['name', 'url', 'secret', 'binds', 'icon', 'remark'],
+                required: ['name', 'url', 'secret']
+            },
+            addresses: {
+                title: '导入收款地址',
+                hint: '<strong>格式：</strong>每行一条，字段间用 <strong>Tab 制表符</strong> 分隔，顺序为：<br><code>绑定网络</code> → <code>名称</code> → <code>地址</code> → <code>图标</code> → <code>备注</code><br>空字段保留制表符占位，例如：<code>auto\t波场主钱包\tTX...\t\t</code>',
+                fields: ['network', 'name', 'address', 'icon', 'remark'],
+                required: ['name', 'address']
+            },
+            networks: {
+                title: '导入网络节点',
+                hint: '<strong>格式：</strong>每行一条，字段间用 <strong>Tab 制表符</strong> 分隔，顺序为：<br><code>标识</code> → <code>内核</code> → <code>RPC</code> → <code>USDT合约</code> → <code>精度</code> → <code>颜色</code> → <code>名称</code><br>空字段保留制表符占位，例如：<code>BSC\tevm\thttps://...\t0x55d3...\t18\t#f59e0b\t币安链</code>',
+                fields: ['type', 'rpc', 'usdt', 'decimals', 'color', 'displayName'],
+                required: ['type']
+            }
+        };
+
+        function showImportModal(type) {
+            currentImportType = type;
+            const cfg = IMPORT_CONFIG[type];
+            document.getElementById('importModalTitle').textContent = cfg.title;
+            document.getElementById('importHint').innerHTML = cfg.hint;
+            document.getElementById('importTextarea').value = '';
+            document.getElementById('importFileInput').value = '';
+            document.getElementById('importFileName').textContent = '';
+            document.getElementById('importOverlay').classList.add('show');
         }
 
-        // ================= 回调路由 导出/导入 =================
-        // 字段顺序: 名称  URL  密钥  绑定号池  图标  备注
+        function closeImportModal() {
+            document.getElementById('importOverlay').classList.remove('show');
+            currentImportType = null;
+        }
+
+        function onImportFileLoad(fileInput) {
+            const file = fileInput.files[0];
+            if (!file) return;
+            document.getElementById('importFileName').textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = () => { document.getElementById('importTextarea').value = reader.result; };
+            reader.readAsText(file);
+        }
+
+        async function executeImport() {
+            const text = document.getElementById('importTextarea').value.trim();
+            if (!text) return alert('请粘贴数据或选择文件');
+            const type = currentImportType;
+            const cfg = IMPORT_CONFIG[type];
+            const rows = text.split('\n').filter(r => r.trim());
+
+            let count = 0, skipped = 0;
+            const btn = document.getElementById('importConfirmBtn');
+            btn.disabled = true; btn.textContent = '导入中...';
+
+            try {
+                for (const row of rows) {
+                    const cols = row.split('\t');
+                    const item = {};
+                    if (type === 'networks') {
+                        item._key = (cols[0] || '').trim();
+                        cfg.fields.forEach((f, i) => {
+                            const val = (cols[i + 1] || '').trim();
+                            if (f === 'decimals') item[f] = parseInt(val) || 6;
+                            else if (val) item[f] = val;
+                        });
+                        if (!item._key || !item.type) { skipped++; continue; }
+                        delete networkCachePool[item._key]; // 先清旧
+                        networkCachePool[item._key] = {};
+                        cfg.fields.forEach(f => { if (item[f] !== undefined) networkCachePool[item._key][f] = item[f]; });
+                        count++;
+                    } else {
+                        cfg.fields.forEach((f, i) => item[f] = (cols[i] || '').trim());
+                        const missing = cfg.required.some(f => !item[f]);
+                        if (missing) { skipped++; continue; }
+                        if (type === 'webhooks') {
+                            await fetch('/api/webhooks', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: item.name, url: item.url, secret: item.secret, binds: item.binds || '*', icon: item.icon || '', remark: item.remark || '' })
+                            });
+                        } else if (type === 'addresses') {
+                            const res = await fetch('/api/addresses', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: item.name, address: item.address, icon: item.icon || '', remark: item.remark || '' })
+                            });
+                            const resData = await res.json();
+                            if (item.network && item.network !== 'auto' && resData.id) {
+                                await fetch('/api/address-bindings', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id: resData.id, network: item.network })
+                                });
+                            }
+                        }
+                        count++;
+                    }
+                }
+
+                // networks 需要最后统一保存
+                if (type === 'networks' && count > 0) {
+                    await fetch('/api/networks', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(networkCachePool)
+                    });
+                }
+
+                closeImportModal();
+                const skipMsg = skipped > 0 ? `，跳过 ${skipped} 条无效数据` : '';
+                alert(`✅ 成功导入 ${count} 条${cfg.title.replace('导入', '')}${skipMsg}`);
+
+                if (type === 'webhooks') loadWebhooks();
+                else if (type === 'addresses') loadAddresses();
+                else if (type === 'networks') renderNetworksGrid();
+            } catch(e) {
+                alert('导入失败: ' + e.message);
+            } finally {
+                btn.disabled = false; btn.textContent = '确认导入';
+            }
+        }
+
+        // ================= 回调路由 导出 =================
         const WEBHOOK_FIELDS = ['name', 'url', 'secret', 'binds', 'icon', 'remark'];
 
         function exportWebhooks() {
@@ -1301,33 +1429,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             alert(`✅ 已导出 ${lines.length} 条回调路由`);
         }
 
-        async function importWebhooks(fileInput) {
-            try {
-                const text = await readFileAsText(fileInput);
-                const rows = text.trim().split('\n').filter(r => r.trim());
-                let count = 0;
-                for (const row of rows) {
-                    const cols = row.split('\t');
-                    const item = {};
-                    WEBHOOK_FIELDS.forEach((f, i) => item[f] = (cols[i] || '').trim());
-                    if (!item.name || !item.url || !item.secret) continue;
-                    await fetch('/api/webhooks', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: item.name, url: item.url, secret: item.secret,
-                            binds: item.binds || '*', icon: item.icon || '', remark: item.remark || ''
-                        })
-                    });
-                    count++;
-                }
-                fileInput.value = '';
-                alert(`✅ 成功导入 ${count} 条回调路由`);
-                loadWebhooks();
-            } catch(e) { fileInput.value = ''; alert('导入失败: ' + e.message); }
-        }
-
-        // ================= 收款地址 导出/导入 =================
-        // 字段顺序: 绑定网络  名称  地址  图标  备注
+        // ================= 收款地址 导出 =================
         const ADDRESS_FIELDS = ['network', 'name', 'address', 'icon', 'remark'];
 
         function exportAddresses() {
@@ -1340,41 +1442,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             alert(`✅ 已导出 ${lines.length} 个收款地址`);
         }
 
-        async function importAddresses(fileInput) {
-            try {
-                const text = await readFileAsText(fileInput);
-                const rows = text.trim().split('\n').filter(r => r.trim());
-                let count = 0;
-                for (const row of rows) {
-                    const cols = row.split('\t');
-                    const item = {};
-                    ADDRESS_FIELDS.forEach((f, i) => item[f] = (cols[i] || '').trim());
-                    if (!item.name || !item.address) continue;
-                    const res = await fetch('/api/addresses', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: item.name, address: item.address,
-                            icon: item.icon || '', remark: item.remark || ''
-                        })
-                    });
-                    const resData = await res.json();
-                    if (item.network && item.network !== 'auto' && resData.id) {
-                        await fetch('/api/address-bindings', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: resData.id, network: item.network })
-                        });
-                    }
-                    count++;
-                }
-                fileInput.value = '';
-                await new Promise(r => setTimeout(r, 800));
-                alert(`✅ 成功导入 ${count} 个收款地址`);
-                loadAddresses();
-            } catch(e) { fileInput.value = ''; alert('导入失败: ' + e.message); }
-        }
-
-        // ================= 网络节点 导出/导入 =================
-        // 字段顺序: 标识  内核  RPC  USDT合约  精度  颜色  名称
+        // ================= 网络节点 导出 =================
         const NETWORK_FIELDS = ['type', 'rpc', 'usdt', 'decimals', 'color', 'displayName'];
 
         function exportNetworks() {
@@ -1385,35 +1453,29 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             downloadTXT(lines.join('\n'), `networks_${new Date().toISOString().slice(0,10)}.txt`);
             alert(`✅ 已导出 ${lines.length} 个网络节点`);
         }
-
-        async function importNetworks(fileInput) {
-            try {
-                const text = await readFileAsText(fileInput);
-                const rows = text.trim().split('\n').filter(r => r.trim());
-                let count = 0;
-                for (const row of rows) {
-                    const cols = row.split('\t');
-                    const key = (cols[0] || '').trim();
-                    if (!key) continue;
-                    const conf = {};
-                    NETWORK_FIELDS.forEach((f, i) => {
-                        const val = (cols[i + 1] || '').trim();
-                        if (f === 'decimals') conf[f] = parseInt(val) || 6;
-                        else if (val) conf[f] = val;
-                    });
-                    if (!conf.type) continue;
-                    networkCachePool[key] = conf;
-                    count++;
-                }
-                await fetch('/api/networks', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(networkCachePool)
-                });
-                fileInput.value = '';
-                alert(`✅ 成功导入 ${count} 个网络节点`);
-                renderNetworksGrid();
-            } catch(e) { fileInput.value = ''; alert('导入失败: ' + e.message); }
-        }
     </script>
+    <!-- 通用导入弹窗 -->
+    <div class="import-overlay" id="importOverlay" onclick="if(event.target===this)closeImportModal()">
+        <div class="import-modal">
+            <div class="import-modal-header">
+                <h3 id="importModalTitle">导入数据</h3>
+                <button class="import-modal-close" onclick="closeImportModal()">✕</button>
+            </div>
+            <div class="import-modal-body">
+                <div class="hint" id="importHint"></div>
+                <textarea id="importTextarea" placeholder="在此粘贴制表符分隔的数据..."></textarea>
+                <div class="or-line">或者从文件导入</div>
+                <label class="file-upload-btn">
+                    📁 选择 .txt 文件
+                    <input type="file" id="importFileInput" accept=".txt" style="display:none" onchange="onImportFileLoad(this)">
+                </label>
+                <span id="importFileName" style="margin-left:10px; font-size:0.85rem; color:#6b7280;"></span>
+            </div>
+            <div class="import-modal-footer">
+                <button class="btn" style="background:#94a3b8;" onclick="closeImportModal()">取消</button>
+                <button class="btn btn-success" id="importConfirmBtn" onclick="executeImport()">确认导入</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
