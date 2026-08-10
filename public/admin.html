@@ -219,7 +219,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn" style="background:#6366f1;" onclick="exportWebhooks()">📥 导出</button>
                             <button class="btn" style="background:#8b5cf6;" onclick="document.getElementById('import_webhook_file').click()">📤 导入</button>
-                            <input type="file" id="import_webhook_file" accept=".json" style="display:none" onchange="importWebhooks(this)">
+                            <input type="file" id="import_webhook_file" accept=".txt" style="display:none" onchange="importWebhooks(this)">
                             <button class="btn btn-success" onclick="resetFormState('webhook'); document.getElementById('add_webhook_form').style.display='block'">+ 增加回调节点</button>
                         </div>
                     </div>
@@ -287,7 +287,7 @@
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button class="btn" style="background:#6366f1;" onclick="exportAddresses()">📥 导出</button>
                         <button class="btn" style="background:#8b5cf6;" onclick="document.getElementById('import_address_file').click()">📤 导入</button>
-                        <input type="file" id="import_address_file" accept=".json" style="display:none" onchange="importAddresses(this)">
+                        <input type="file" id="import_address_file" accept=".txt" style="display:none" onchange="importAddresses(this)">
                         <button class="btn btn-success" onclick="resetFormState('address'); document.getElementById('add_address_form').style.display='block'">+ 增加地址</button>
                     </div>
                 </div>
@@ -504,7 +504,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn" style="background:#6366f1;" onclick="exportNetworks()">📥 导出</button>
                             <button class="btn" style="background:#8b5cf6;" onclick="document.getElementById('import_network_file').click()">📤 导入</button>
-                            <input type="file" id="import_network_file" accept=".json" style="display:none" onchange="importNetworks(this)">
+                            <input type="file" id="import_network_file" accept=".txt" style="display:none" onchange="importNetworks(this)">
                             <button class="btn btn-success" onclick="showAddNetworkForm()">+ 新增网络</button>
                         </div>
                     </div>
@@ -1269,46 +1269,47 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
         initData();
 
         // ================= 通用导出/导入工具函数 =================
-        function downloadJSON(data, filename) {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        function downloadTXT(content, filename) {
+            const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = filename; a.click();
             URL.revokeObjectURL(url);
         }
 
-        function readFileAsJSON(fileInput) {
+        function readFileAsText(fileInput) {
             return new Promise((resolve, reject) => {
                 const file = fileInput.files[0];
                 if (!file) return reject(new Error('未选择文件'));
                 const reader = new FileReader();
-                reader.onload = () => {
-                    try { resolve(JSON.parse(reader.result)); }
-                    catch(e) { reject(new Error('JSON 解析失败: ' + e.message)); }
-                };
+                reader.onload = () => resolve(reader.result);
                 reader.onerror = () => reject(new Error('文件读取失败'));
                 reader.readAsText(file);
             });
         }
 
         // ================= 回调路由 导出/导入 =================
+        // 字段顺序: 名称  URL  密钥  绑定号池  图标  备注
+        const WEBHOOK_FIELDS = ['name', 'url', 'secret', 'binds', 'icon', 'remark'];
+
         function exportWebhooks() {
             if (!globalWebhooks || globalWebhooks.length === 0) return alert('暂无回调路由数据可导出');
-            const exportData = globalWebhooks.map(w => ({
-                name: w.name, url: w.url, secret: w.secret,
-                binds: w.binds, icon: w.icon, remark: w.remark,
-                enabled: w.enabled
-            }));
-            downloadJSON(exportData, `webhooks_${new Date().toISOString().slice(0,10)}.json`);
-            alert(`✅ 已导出 ${exportData.length} 条回调路由`);
+            const lines = globalWebhooks.map(w =>
+                WEBHOOK_FIELDS.map(f => w[f] || '').join('\t')
+            );
+            downloadTXT(lines.join('\n'), `webhooks_${new Date().toISOString().slice(0,10)}.txt`);
+            alert(`✅ 已导出 ${lines.length} 条回调路由`);
         }
 
         async function importWebhooks(fileInput) {
             try {
-                const data = await readFileAsJSON(fileInput);
-                const items = Array.isArray(data) ? data : [data];
+                const text = await readFileAsText(fileInput);
+                const rows = text.trim().split('\n').filter(r => r.trim());
                 let count = 0;
-                for (const item of items) {
+                for (const row of rows) {
+                    const cols = row.split('\t');
+                    const item = {};
+                    WEBHOOK_FIELDS.forEach((f, i) => item[f] = (cols[i] || '').trim());
                     if (!item.name || !item.url || !item.secret) continue;
                     await fetch('/api/webhooks', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1326,22 +1327,28 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
         }
 
         // ================= 收款地址 导出/导入 =================
+        // 字段顺序: 绑定网络  名称  地址  图标  备注
+        const ADDRESS_FIELDS = ['network', 'name', 'address', 'icon', 'remark'];
+
         function exportAddresses() {
             if (!globalAddresses || globalAddresses.length === 0) return alert('暂无收款地址数据可导出');
-            const exportData = globalAddresses.map(a => {
+            const lines = globalAddresses.map(a => {
                 const boundNet = globalAddressBindings[a.id.toString()] || 'auto';
-                return { name: a.name, address: a.address, icon: a.icon, remark: a.remark, network: boundNet };
+                return [boundNet, a.name, a.address, a.icon || '', a.remark || ''].join('\t');
             });
-            downloadJSON(exportData, `addresses_${new Date().toISOString().slice(0,10)}.json`);
-            alert(`✅ 已导出 ${exportData.length} 个收款地址`);
+            downloadTXT(lines.join('\n'), `addresses_${new Date().toISOString().slice(0,10)}.txt`);
+            alert(`✅ 已导出 ${lines.length} 个收款地址`);
         }
 
         async function importAddresses(fileInput) {
             try {
-                const data = await readFileAsJSON(fileInput);
-                const items = Array.isArray(data) ? data : [data];
+                const text = await readFileAsText(fileInput);
+                const rows = text.trim().split('\n').filter(r => r.trim());
                 let count = 0;
-                for (const item of items) {
+                for (const row of rows) {
+                    const cols = row.split('\t');
+                    const item = {};
+                    ADDRESS_FIELDS.forEach((f, i) => item[f] = (cols[i] || '').trim());
                     if (!item.name || !item.address) continue;
                     const res = await fetch('/api/addresses', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1351,7 +1358,6 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
                         })
                     });
                     const resData = await res.json();
-                    // 保存网络绑定关系
                     if (item.network && item.network !== 'auto' && resData.id) {
                         await fetch('/api/address-bindings', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1368,18 +1374,33 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
         }
 
         // ================= 网络节点 导出/导入 =================
+        // 字段顺序: 标识  内核  RPC  USDT合约  精度  颜色  名称
+        const NETWORK_FIELDS = ['type', 'rpc', 'usdt', 'decimals', 'color', 'displayName'];
+
         function exportNetworks() {
             if (!networkCachePool || Object.keys(networkCachePool).length === 0) return alert('暂无网络节点数据可导出');
-            downloadJSON(networkCachePool, `networks_${new Date().toISOString().slice(0,10)}.json`);
-            alert(`✅ 已导出 ${Object.keys(networkCachePool).length} 个网络节点`);
+            const lines = Object.entries(networkCachePool).map(([key, conf]) =>
+                [key, ...NETWORK_FIELDS.map(f => conf[f] != null ? String(conf[f]) : '')].join('\t')
+            );
+            downloadTXT(lines.join('\n'), `networks_${new Date().toISOString().slice(0,10)}.txt`);
+            alert(`✅ 已导出 ${lines.length} 个网络节点`);
         }
 
         async function importNetworks(fileInput) {
             try {
-                const data = await readFileAsJSON(fileInput);
-                if (typeof data !== 'object' || Array.isArray(data)) throw new Error('网络节点数据格式应为 JSON 对象');
+                const text = await readFileAsText(fileInput);
+                const rows = text.trim().split('\n').filter(r => r.trim());
                 let count = 0;
-                for (const [key, conf] of Object.entries(data)) {
+                for (const row of rows) {
+                    const cols = row.split('\t');
+                    const key = (cols[0] || '').trim();
+                    if (!key) continue;
+                    const conf = {};
+                    NETWORK_FIELDS.forEach((f, i) => {
+                        const val = (cols[i + 1] || '').trim();
+                        if (f === 'decimals') conf[f] = parseInt(val) || 6;
+                        else if (val) conf[f] = val;
+                    });
                     if (!conf.type) continue;
                     networkCachePool[key] = conf;
                     count++;
