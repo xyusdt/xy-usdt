@@ -136,11 +136,11 @@
         .import-modal-body .hint strong { color:#1d4ed8; }
         .import-modal-body textarea { width:100%; min-height:180px; padding:12px; border:1px solid #d1d5db; border-radius:8px; font-family:monospace; font-size:0.85rem; line-height:1.6; resize:vertical; box-sizing:border-box; outline:none; transition:0.2s; }
         .import-modal-body textarea:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
-        .import-modal-body .or-line { display:flex; align-items:center; gap:12px; margin:14px 0; color:#9ca3af; font-size:0.82rem; }
+        .import-modal-body .or-line { display:flex; align-items:center; margin:14px 0; color:#9ca3af; font-size:0.82rem; }
         .import-modal-body .or-line::before, .import-modal-body .or-line::after { content:''; flex:1; height:1px; background:#e5e7eb; }
         .import-modal-body .file-upload-btn { display:inline-flex; align-items:center; padding:10px 20px; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:8px; cursor:pointer; font-size:0.9rem; color:#475569; transition:0.2s; }
         .import-modal-body .file-upload-btn:hover { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
-        .import-modal-footer { padding:16px 24px; border-top:1px solid #e5e7eb; display:flex; justify-content:flex-end; gap:10px; }
+        .import-modal-footer { padding:16px 24px; border-top:1px solid #e5e7eb; display:flex; justify-content:flex-end; }
 		/* ================= 移动端适配样式 ================= */
     .menu-toggle { display: none; }
     @media (max-width: 768px) {
@@ -1473,7 +1473,7 @@ echo json_encode(["code" => 200, "msg" => "SUCCESS"]);
             </div>
             <div class="import-modal-footer">
                 <button class="btn" style="background:#94a3b8;" onclick="closeImportModal()">取消</button>
-                <button class="btn btn-success" id="importConfirmBtn" onclick="executeImport()">确认导入</button>
+                <button class="btn btn-success" id="importConfirmBtn" onclick="executeImport()" style="margin-left:10px;">确认导入</button>
             </div>
         </div>
     </div>
